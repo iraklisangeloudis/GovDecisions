@@ -6,4 +6,4 @@ internet "Clarity Program" and other provisions".
 και πράξεων των κυβερνητικών, διοικητικών και αυτοδιοικητικών οργάνων στο
 διαδίκτυο «Πρόγραμμα Διαύγεια» και άλλες διατάξεις», (Α΄ 112)
 
-Made for personal.
+Made for personal use.
