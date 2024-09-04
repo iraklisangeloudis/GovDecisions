@@ -8,8 +8,8 @@ import os
 # URL to fetch the XML data
 url = "https://diavgeia.gov.gr/luminapi/api/search/export?q=decisionType:%22%CE%95%CE%93%CE%9A%CE%A5%CE%9A%CE%9B%CE%99%CE%9F%CE%A3%22&fq=organizationUid:%226%22&sort=recent&wt=xml"
 
-# File to store downloaded URLs
-downloaded_urls_file = "downloaded_urls.txt"
+# File to store downloaded URLs - Save to the Documents folder
+downloaded_urls_file = r"C:\Users\irakl\Documents\downloaded_urls.txt"
 
 # Variable to track the current day
 current_day = datetime.now().strftime('%d/%m/%Y')
@@ -17,13 +17,13 @@ current_day = datetime.now().strftime('%d/%m/%Y')
 # Function to load already downloaded URLs from the file
 def load_downloaded_urls(file_path):
     if os.path.exists(file_path):
-        with open(file_path, "r") as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             return set(line.strip() for line in file.readlines())
     return set()
 
 # Function to save a new URL to the file
 def save_downloaded_url(file_path, url):
-    with open(file_path, "a") as file:
+    with open(file_path, "a", encoding="utf-8") as file:
         file.write(url + "\n")
 
 # Function to clear the downloaded URLs file
@@ -66,9 +66,10 @@ def check_for_new_decisions():
                     # If the document URL hasn't been downloaded yet, download it
                     if document_url not in downloaded_urls:
                         webbrowser.open(document_url)
-                        
                         # Save the URL to the list of downloaded URLs
                         save_downloaded_url(downloaded_urls_file, document_url)
+                    # # get the first and break
+                    # break
         else:
             print(f"Failed to retrieve data. Status code: {response.status_code}")
 
@@ -78,9 +79,6 @@ def check_for_new_decisions():
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
 
-# Run the check regularly (e.g., every half an hour)
-while True:
-    check_for_new_decisions()
-    # Sleep for half an hour (1800 seconds) before checking again
-    time.sleep(1800)
 
+# Run
+check_for_new_decisions()
