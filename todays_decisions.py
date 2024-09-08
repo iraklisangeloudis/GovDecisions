@@ -1,9 +1,13 @@
 import requests
 import xml.etree.ElementTree as ET
-import webbrowser
 from datetime import datetime
-import time
 import os
+import sys
+import io
+from pathlib import Path
+
+# Change the default encoding to UTF-8
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # URL to fetch the XML data
 url = "https://diavgeia.gov.gr/luminapi/api/search/export?q=decisionType:%22%CE%95%CE%93%CE%9A%CE%A5%CE%9A%CE%9B%CE%99%CE%9F%CE%A3%22&fq=organizationUid:%226%22&sort=recent&wt=xml"
@@ -29,6 +33,26 @@ def save_downloaded_url(file_path, url):
 # Function to clear the downloaded URLs file
 def clear_downloaded_urls_file(file_path):
     open(file_path, "w").close()
+
+# Function to download the PDF from the URL and save it locally
+def download_pdf(document_url, ada):
+    try:
+        response = requests.get(document_url)
+        if response.status_code == 200:
+            # Get the Downloads folder path
+            downloads_path = str(Path.home() / "Downloads")
+            
+            # Save the PDF with the ADA code as the filename in the Downloads folder
+            pdf_filename = os.path.join(downloads_path, f"{ada}.pdf")
+            
+            with open(pdf_filename, 'wb') as pdf_file:
+                pdf_file.write(response.content)
+            
+            print(f"Downloaded {pdf_filename}")
+        else:
+            print(f"Failed to download PDF from {document_url}. Status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error downloading PDF: {e}")
 
 # Main function to check for new decisions
 def check_for_new_decisions():
@@ -57,6 +81,7 @@ def check_for_new_decisions():
             # Iterate through each decision
             for decision in root.findall('.//decision'):
                 submission_timestamp = decision.find('submissionTimestamp').text
+                ada = decision.find('ada').text  # Get ADA code for unique filename
                 
                 # Check if submissionTimestamp is today's date
                 if submission_timestamp.startswith(today_date):
@@ -65,10 +90,11 @@ def check_for_new_decisions():
                     
                     # If the document URL hasn't been downloaded yet, download it
                     if document_url not in downloaded_urls:
-                        webbrowser.open(document_url)
+                        # Download the PDF
+                        download_pdf(document_url, ada)
                         # Save the URL to the list of downloaded URLs
                         save_downloaded_url(downloaded_urls_file, document_url)
-                    # # get the first and break
+                    # Uncomment below to download just the first PDF
                     # break
         else:
             print(f"Failed to retrieve data. Status code: {response.status_code}")
@@ -78,7 +104,6 @@ def check_for_new_decisions():
 
     except ET.ParseError as e:
         print(f"Error parsing XML: {e}")
-
 
 # Run
 check_for_new_decisions()
