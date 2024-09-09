@@ -1,6 +1,6 @@
 # Python Script Scheduled Execution
 
-This repository contains a Python script that is scheduled to run every hour using Windows Task Scheduler. The script runs silently in the background without opening any visible Command Prompt windows.
+This repository contains a Python script that is scheduled to run every hour using Windows Task Scheduler. The script runs silently in the background.
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ This repository contains a Python script that is scheduled to run every hour usi
 
 ## Testing the Setup
 
-* Right-click on the task in Task Scheduler and select "Run" to test the task. The script should execute without showing any visible windows.
+* Right-click on the task in Task Scheduler and select "Run" to test the task. The script should execute without showing any visible Command Prompt windows.
 
 ## Troubleshooting
 
