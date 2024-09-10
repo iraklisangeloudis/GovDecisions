@@ -21,8 +21,8 @@ This repository contains a Python-based web application using Flask that display
 
 1. **Clone the Repository**:
    ```cmd
-   git clone https://github.com/iraklisangeloudis/todays_decisions.git
-   cd todays_decisions
+   git clone https://github.com/iraklisangeloudis/GovDecisions.git
+   cd GovDecisions
    ```
 
 2. **Install Dependencies**:
@@ -42,7 +42,7 @@ This repository contains a Python-based web application using Flask that display
 ## Folder Structure
 
 ```
-todays_decisions/
+GovDecisions/
 │
 ├── app.py           # Main Flask application
 ├── templates/
