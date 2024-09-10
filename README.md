@@ -1,5 +1,3 @@
-Here's the completed README.md file for your Flask web application:
-
 # Flask Web Application for Recent Decisions
 
 This repository contains a Python-based web application using Flask that displays the most recent decisions from an XML feed. Each decision is displayed with its subject and submission timestamp, and users can click to download the corresponding PDF.
@@ -11,9 +9,9 @@ This repository contains a Python-based web application using Flask that display
 * **Python**: Ensure Python is installed and added to your system's PATH.
 * **Flask**: Install Flask using pip:
   ```cmd
-  pip install Flask
+  pip install Flask requests
   ```
-  * **requests**: Install requests using pip:
+* **requests**: Install requests using pip:
   ```cmd
   pip install requests
   ```
