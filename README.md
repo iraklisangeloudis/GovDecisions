@@ -85,7 +85,7 @@ GovDecisions/
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 Law 3861/2010 "Strengthening transparency with the mandatory posting of laws
-and acts of governmental, administrative and self-governing bodies in
+and acts of governmental, administrative and self-governing bodies on the
 internet "Diavgeia Program" and other provisions".
 
 Ν. 3861/2010 «Ενίσχυση της διαφάνειας με την υποχρεωτική ανάρτηση νόμων
