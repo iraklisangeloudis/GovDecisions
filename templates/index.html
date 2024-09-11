@@ -13,7 +13,7 @@
             <li>
                 <strong>{{ decision.subject }}</strong><br>
                 Submission Timestamp: {{ decision.submissionTimestamp }}<br>
-                <a href="{{ url_for('download_pdf', ada=decision.ada) }}">Download PDF</a>
+                <a href="{{ url_for('decisions.download_pdf', ada=decision.ada) }}">Download PDF</a>
             </li>
             <br>
         {% endfor %}
