@@ -1,4 +1,4 @@
-# Flask Web Application for Recent Decisions
+# Flask Web Application for Gov Decisions
 
 This repository contains a Python-based web application using Flask that displays the most recent decisions from an XML feed. Each decision is displayed with its subject and submission timestamp, and users can click to download the corresponding PDF. The app provides a simple, user-friendly interface for accessing public documents from the "Diavgeia Program (https://www.diavgeia.gov.gr/api/help).
 
@@ -13,7 +13,7 @@ This repository contains a Python-based web application using Flask that display
 
 1. **Clone the Repository**:
 
-   ```bash
+   ```cmd
    git clone https://github.com/iraklisangeloudis/GovDecisions.git
    cd GovDecisions
    ```
@@ -21,7 +21,7 @@ This repository contains a Python-based web application using Flask that display
 2. **Install Dependencies** (If not using Docker):
    Create a virtual environment and install dependencies:
 
-   ```bash
+   ```cmd
    python -m venv venv
    venv\Scripts\activate  # For Windows
    pip install -r requirements.txt
@@ -30,7 +30,7 @@ This repository contains a Python-based web application using Flask that display
 3. **Run the Flask Application Locally**:
    If running locally without Docker:
 
-   ```bash
+   ```cmd
    python app.py
    ```
 
@@ -42,13 +42,13 @@ To run the app in a Docker container:
 
 1. **Build the Docker Image**:
 
-   ```bash
+   ```cmd
    docker build -t flask-app .
    ```
 
 2. **Run the Docker Container**:
 
-   ```bash
+   ```cmd
    docker run -p 5000:5000 flask-app
    ```
 
