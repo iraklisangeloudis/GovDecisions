@@ -16,5 +16,5 @@ EXPOSE 5000
 # Define environment variable to run the app in production
 ENV FLASK_ENV=production
 
-# Run the Flask app
-CMD ["flask", "run", "--host=0.0.0.0"]
+# Run the Gunicorn server instead of Flask's built-in server
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
