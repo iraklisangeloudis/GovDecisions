@@ -86,7 +86,7 @@ GovDecisions/
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 Law 3861/2010 "Strengthening transparency with the mandatory posting of laws
 and acts of governmental, administrative and self-governing bodies on the
