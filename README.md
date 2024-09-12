@@ -1,6 +1,6 @@
 # Flask Web Application for Gov Decisions
 
-This repository contains a Python-based web application using Flask that displays the most recent decisions from an XML feed. Each decision is displayed with its subject and submission timestamp, and users can click to download the corresponding PDF. The app provides a simple, user-friendly interface for accessing public documents from the "Diavgeia Program (https://www.diavgeia.gov.gr/api/help).
+This repository contains a Python-based web application using Flask that displays the most recent documents from an XML feed. Each document is displayed with its subject and submission timestamp, and users can click to download the corresponding PDF. The app provides a simple, user-friendly interface for accessing public documents from the "Diavgeia Program (https://www.diavgeia.gov.gr/api/help).
 
 ## Getting Started
 
