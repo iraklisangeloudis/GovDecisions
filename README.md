@@ -74,10 +74,14 @@ GovDecisions/
 │   └── xml_parser.py      # Helper function to fetch and parse XML data
 ├── templates/
 │   └── index.html         # HTML template to display recent decisions
+├── static/
+│   └── styles.css         # CSS file for styling the app
 ├── Dockerfile             # Instructions to build Docker image
+├── .dockerignore          # Files and directories to ignore when building the Docker image
 ├── requirements.txt       # List of dependencies
-├── docker-compose.yml     # Docker Compose file (optional)
-└── README.md              # This file
+├── docker-compose.yml     # Docker Compose file for production
+├── docker-compose.dev.yml # Docker Compose file for development
+└── README.md              # Project documentation
 ```
 
 ## License
