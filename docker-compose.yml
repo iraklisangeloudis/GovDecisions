@@ -8,3 +8,12 @@ services:
     environment:
       - FLASK_ENV=production  # Production environment
 
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: pytest
+    environment:
+      - PYTHONPATH=/app  # Add the app directory to the Python path
+    volumes:
+      - .:/app
