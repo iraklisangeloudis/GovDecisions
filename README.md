@@ -59,6 +59,7 @@ To run the app in a Docker container:
 If you have a `docker-compose.yml` file, you can use Docker Compose to simplify running the app:
 
 ```cmd
+docker-compose build
 docker-compose up
 ```
 
