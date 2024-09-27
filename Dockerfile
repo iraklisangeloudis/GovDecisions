@@ -11,10 +11,10 @@ COPY . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port Flask will run on
-EXPOSE 5000
+EXPOSE 8080
 
 # Define environment variable to run the app in production
 ENV FLASK_ENV=production
 
 # Run the Gunicorn server instead of Flask's built-in server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
