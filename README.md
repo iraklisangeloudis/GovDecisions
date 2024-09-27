@@ -34,7 +34,7 @@ This repository contains a Python-based web application using Flask that display
    python app.py
    ```
 
-   Open a web browser and go to `http://127.0.0.1:5000/` to view the application.
+   Open a web browser and go to `http://127.0.0.1:8080/` to view the application.
 
 ### Docker Setup
 
@@ -49,10 +49,10 @@ To run the app in a Docker container:
 2. **Run the Docker Container**:
 
    ```cmd
-   docker run -p 5000:5000 flask-app
+   docker run -p 8080:8080 flask-app
    ```
 
-   Now, go to `http://localhost:5000` in your web browser to access the application.
+   Now, go to `http://localhost:8080` in your web browser to access the application.
 
 #### (Optional) Using Docker Compose:
 
@@ -77,7 +77,12 @@ GovDecisions/
 │   └── index.html         # HTML template to display recent decisions
 ├── static/
 │   └── styles.css         # CSS file for styling the app
+├── .github/workflows/
+│   └── docker-ci.yml      # CI Pipeline
+├── tests/                 # Tests folder
+│   └── test_decisions.py  
 ├── Dockerfile             # Instructions to build Docker image
+├── Dockerfile.test        # Instructions to build Docker image for testing
 ├── .dockerignore          # Files and directories to ignore when building the Docker image
 ├── requirements.txt       # List of dependencies
 ├── docker-compose.yml     # Docker Compose file for production
