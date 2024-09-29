@@ -1,2 +1,7 @@
 __pycache__/
 key.json
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+.terraform/
+terraform.tfvars

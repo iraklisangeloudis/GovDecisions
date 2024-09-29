@@ -28,6 +28,17 @@ jobs:
       - name: Run Tests
         run: docker-compose run --rm tests
 
+      - name: Shutdown Docker containers
+        run: docker-compose down -v
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       # # Authenticate with Google Cloud
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -44,14 +55,14 @@ jobs:
           docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/flask-docker-repo/flask-app:v1 .
           docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/flask-docker-repo/flask-app:v1
 
-      # Deploy the app to Google Cloud Run
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy flask-app \
-            --image=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/flask-docker-repo/flask-app:v1 \
-            --region=us-central1 \
-            --platform=managed \
-            --allow-unauthenticated
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
 
-      - name: Shutdown Docker containers
-        run: docker-compose down -v
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
