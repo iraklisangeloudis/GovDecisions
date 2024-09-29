@@ -62,7 +62,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
+        run: terraform plan -chdir=terraform -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
+        run: terraform apply -chdir=terraform -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-central1"
