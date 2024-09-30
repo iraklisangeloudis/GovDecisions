@@ -39,3 +39,10 @@ resource "google_cloud_run_service_iam_member" "all_users_run_invoker" {
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
+
+terraform {
+  backend "gcs" {
+    bucket = "flask-terraform-state-bucket"
+    prefix = "terraform/state"
+  }
+}
