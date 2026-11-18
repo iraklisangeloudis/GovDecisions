@@ -105,6 +105,7 @@
     function renderCatalogStatus() {
         const message = { loading: 'loadingMinistries', error: 'error', empty: 'noMinistries', stale: 'catalogStale' }[catalogState];
         $('organizations-status').hidden = !message;
+        $('organizations-status').classList.toggle('is-loading', catalogState === 'loading');
         $('organizations-status').textContent = message ? t(message) : '';
         $('organizations-retry').hidden = catalogState !== 'error';
     }
