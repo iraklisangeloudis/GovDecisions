@@ -217,7 +217,9 @@
     function renderCard(row) {
         const card = document.createElement('article');
         card.className = 'decision-card';
-        card.append(textElement('p', 'decision-organization', row.organizationLabel));
+        if (row.organizationId !== selected) {
+            card.append(textElement('p', 'decision-organization', row.organizationLabel));
+        }
         card.append(textElement('h2', '', row.subject));
         const footer = textElement('div', 'decision-footer', '');
         const meta = textElement('div', 'decision-meta', '');
