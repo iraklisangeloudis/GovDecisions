@@ -19,10 +19,10 @@ RUN pip install --no-cache-dir -r requirements.txt \
 
 COPY app.py config.py ./
 COPY routes/ ./routes/
-COPY utils/ ./utils/
+COPY services/ ./services/
 COPY templates/ ./templates/
 COPY static/ ./static/
 
 USER appuser
 EXPOSE 8080
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--threads", "4", "app:app"]

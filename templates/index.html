@@ -9,15 +9,18 @@
 </head>
 <body>
     <h1>Recent Decisions</h1>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    {% if stale %}<p role="status">Diavgeia is temporarily unavailable. Showing previously fetched results.</p>{% endif %}
     <ul>
         {% for decision in decisions %}
             <li>
                 <strong>{{ decision.subject }}</strong><br>
-                Submission Timestamp: {{ decision.submissionTimestamp }}<br>
-                <a href="{{ url_for('decisions.download_pdf', ada=decision.ada) }}">Download PDF</a>
+                Submission Timestamp: {{ decision.submissionTimestamp | decision_timestamp }}<br>
+                <a href="{{ decision.documentUrl }}">Open PDF</a>
             </li>
             <br>
         {% endfor %}
     </ul>
+    {% if not decisions and not error %}<p>No decisions found.</p>{% endif %}
 </body>
 </html>

@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements-dev.txt \
 
 COPY app.py config.py pytest.ini ./
 COPY routes/ ./routes/
-COPY utils/ ./utils/
+COPY services/ ./services/
 COPY templates/ ./templates/
 COPY static/ ./static/
 COPY tests/ ./tests/
