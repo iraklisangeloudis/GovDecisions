@@ -13,6 +13,7 @@
         } catch (_) {}
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='pdf-preview.js') }}" defer></script>
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -57,6 +58,13 @@
             <section class="decision-view" id="decision-view" aria-labelledby="selected-title" hidden>
                 <div class="view-heading"><div><p class="eyebrow" data-i18n="recentDecisions">ΠΡΟΣΦΑΤΕΣ ΑΠΟΦΑΣΕΙΣ</p><h1 id="selected-title"></h1></div><button type="button" class="text-button clear-button" id="clear-selection" data-i18n="clear">Καθαρισμός επιλογής</button></div>
                 <div class="view-options"><label class="supervised-option"><input type="checkbox" id="include-supervised"><span data-i18n="supervised">Συμπερίληψη εποπτευόμενων φορέων</span></label><p data-i18n="dateRange">Τελευταίες 180 ημέρες · πιο πρόσφατες ενημερώσεις πρώτα</p></div>
+                <div class="filters" aria-label="Φίλτρα" id="filters">
+                    <label class="filter-field"><span data-i18n="decisionType">Είδος πράξης</span><span class="select-wrap"><select id="decision-type" disabled><option value="" data-i18n="allTypes">Όλα τα είδη</option></select></span></label>
+                    <label class="filter-field"><span data-i18n="thematicCategory">Θεματική ενότητα</span><span class="select-wrap"><select id="thematic-category" disabled><option value="" data-i18n="allThemes">Όλες οι ενότητες</option></select></span></label>
+                    <button type="button" class="text-button" id="clear-filters" data-i18n="clearFilters" hidden>Καθαρισμός φίλτρων</button>
+                    <p class="filter-status" id="filters-status" role="status"></p>
+                    <button type="button" class="text-button" id="filters-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button>
+                </div>
                 <p class="notice" id="stale-notice" role="status" data-i18n="stale" hidden>Η Διαύγεια δεν είναι διαθέσιμη. Εμφανίζονται προηγούμενα αποτελέσματα.</p>
                 <p class="results-summary" id="results-summary" aria-live="polite"></p>
                 <div class="decision-list" id="decision-list" aria-busy="false"></div>
@@ -67,5 +75,12 @@
             <noscript>Για την περιήγηση απαιτείται JavaScript. / Enable JavaScript to browse decisions.</noscript>
         </main>
     </div>
+    <dialog class="pdf-dialog" id="pdf-dialog" aria-labelledby="pdf-title">
+        <header class="pdf-toolbar"><div class="pdf-heading"><p data-i18n="preview">Προεπισκόπηση PDF</p><h2 id="pdf-title"></h2></div><button type="button" class="icon-button" id="pdf-close" aria-label="Κλείσιμο προεπισκόπησης" autofocus>×</button></header>
+        <div class="pdf-actions"><a class="secondary-button" id="pdf-download" data-i18n="download">Λήψη PDF</a><a class="text-button" id="pdf-new-tab" target="_blank" rel="noopener noreferrer" data-i18n="newTab">Άνοιγμα σε νέα καρτέλα</a><button type="button" class="text-button" id="pdf-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button></div>
+        <p class="pdf-status" id="pdf-status" role="status"></p>
+        <div class="pdf-stage" id="pdf-stage"></div>
+        <p class="pdf-help" data-i18n="pdfHelp">Αν δεν εμφανίζεται η προεπισκόπηση, άνοιξε το PDF σε νέα καρτέλα ή κατέβασέ το.</p>
+    </dialog>
 </body>
 </html>

@@ -97,7 +97,31 @@ class DiavgeiaClient:
             "stale": stale,
         }
 
-    def decisions(self, org, page=0, size=20, include_supervised=False):
+    def filters(self):
+        def options(path, key, decision_types=False):
+            rows = self._get(path).get(key)
+            if not isinstance(rows, list):
+                raise DiavgeiaError("Diavgeia returned invalid filter options.")
+            return sorted([
+                {"uid": str(row["uid"]), "label": row["label"]}
+                for row in rows
+                if isinstance(row, dict) and row.get("uid") and row.get("label")
+                and (not decision_types or row.get("allowedInDecisions") is True)
+            ], key=lambda row: row["label"])
+
+        types, types_stale = self._cached(
+            ("types",), ORGANIZATIONS_CACHE_SECONDS,
+            lambda: options("types.json", "decisionTypes", decision_types=True),
+        )
+        themes, themes_stale = self._cached(
+            ("themes",), ORGANIZATIONS_CACHE_SECONDS,
+            lambda: options("dictionaries/THK.json", "items"),
+        )
+        return {"decisionTypes": types, "thematicCategories": themes,
+                "stale": types_stale or themes_stale}
+
+    def decisions(self, org, page=0, size=20, include_supervised=False,
+                  decision_type="", thematic_category=""):
         if not isinstance(org, str) or not re.fullmatch(r"[0-9]{1,20}", org):
             raise ValueError("org must be a numeric organization ID.")
         if type(page) is not int or not 0 <= page <= 10000:
@@ -106,6 +130,9 @@ class DiavgeiaClient:
             raise ValueError("size must be between 1 and 100.")
         if type(include_supervised) is not bool:
             raise ValueError("include_supervised must be true or false.")
+        for name, value in (("type", decision_type), ("tag", thematic_category)):
+            if not isinstance(value, str) or (value and not re.fullmatch(r"[\w.-]{1,40}", value)):
+                raise ValueError(f"Invalid {name} filter.")
         organizations, catalog_stale = self.organizations()
         labels = {row["uid"]: row["label"] for row in organizations}
         if org not in labels:
@@ -123,10 +150,15 @@ class DiavgeiaClient:
                         pending.append(child)
 
         def fetch():
-            data = self._get("search.json", {
+            params = {
                 "org": ";".join(sorted(ids)), "page": page, "size": size,
                 "sort": "recent", "status": "published",
-            })
+            }
+            if decision_type:
+                params["type"] = decision_type
+            if thematic_category:
+                params["tag"] = thematic_category
+            data = self._get("search.json", params)
             rows, info = data.get("decisions"), data.get("info")
             if not isinstance(rows, list) or not isinstance(info, dict):
                 raise DiavgeiaError("Diavgeia returned invalid search results.")
@@ -161,7 +193,8 @@ class DiavgeiaClient:
                 "hasMore": bool(rows) and (page + 1) * size < total,
             }
         result, stale = self._cached(
-            ("decisions", tuple(sorted(ids)), page, size), DECISIONS_CACHE_SECONDS, fetch,
+            ("decisions", tuple(sorted(ids)), page, size, decision_type, thematic_category),
+            DECISIONS_CACHE_SECONDS, fetch,
         )
         result["stale"] = stale or catalog_stale
         return result

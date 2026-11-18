@@ -149,3 +149,62 @@ def test_cache_refresh_and_stale_expiry(client, api, monkeypatch):
     response = client.get("/api/decisions?org=6")
     assert response.json["decisions"][0]["ada"] == "NEW-1"
     assert response.json["stale"] is False
+
+
+def test_filter_options_are_selectable_and_cached(client, api):
+    api.get(f"{DIAVGEIA_API_URL}/types.json", json={"decisionTypes": [
+        {"uid": "group", "label": "Group", "allowedInDecisions": False},
+        {"uid": "A.1", "label": "Type A", "allowedInDecisions": True},
+    ]})
+    api.get(f"{DIAVGEIA_API_URL}/dictionaries/THK.json",
+            json={"items": [{"uid": "20", "label": "Theme"}]})
+    for _ in range(2):
+        data = client.get("/api/filters").json
+        assert data["decisionTypes"] == [{"uid": "A.1", "label": "Type A"}]
+        assert data["thematicCategories"][0]["uid"] == "20"
+    assert len(api.request_history) == 2
+
+
+def test_filters_reach_upstream_and_have_separate_cache(client, api):
+    for suffix in ["&type=A.1&tag=20", "&type=A.1&tag=20", "&type=A.2&tag=20", ""]:
+        response = client.get("/api/decisions?org=6" + suffix)
+        assert response.status_code == 200
+        if suffix:
+            assert api.last_request.qs["tag"] == ["20"]
+            assert api.last_request.qs["type"] == ["a.2" if "A.2" in suffix else "a.1"]
+    assert len(api.request_history) == 4  # catalog and three distinct searches
+
+
+def test_invalid_filter_is_rejected(client, api):
+    assert client.get("/api/decisions?org=6&type=A;B").status_code == 400
+    assert not api.called
+
+
+def test_preview_serves_inline_pdf(client, api):
+    content = b"%PDF-1.4\nexample"
+    api.get("https://diavgeia.gov.gr/doc/TEST-1", content=content,
+            headers={"Content-Type": "application/pdf", "Content-Disposition": "attachment"})
+    response = client.get("/document/TEST-1")
+    assert response.status_code == 200
+    assert response.data == content
+    assert response.content_type == "application/pdf"
+    assert response.headers["Content-Disposition"].startswith("inline;")
+    assert response.headers["Cache-Control"] == "private, no-store"
+    response.close()
+
+
+@pytest.mark.parametrize("upstream, expected", [
+    ({"status_code": 404}, 404),
+    ({"exc": requests.Timeout}, 503),
+    ({"content": b"not a pdf", "headers": {"Content-Type": "application/pdf"}}, 502),
+])
+def test_preview_errors_are_reported(client, api, upstream, expected):
+    api.get("https://diavgeia.gov.gr/doc/TEST-1", **upstream)
+    assert client.get("/document/TEST-1").status_code == expected
+
+
+def test_preview_size_limit_without_content_length(client, api, monkeypatch):
+    monkeypatch.setattr("services.documents.MAX_PDF_BYTES", 8)
+    api.get("https://diavgeia.gov.gr/doc/TEST-1", content=b"%PDF-1.4 oversized",
+            headers={"Content-Type": "application/pdf"})
+    assert client.get("/document/TEST-1").status_code == 413

@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, redirect, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request, send_file
 
 from services.diavgeia import DiavgeiaError, diavgeia, document_url
+from services.documents import DocumentError, fetch_pdf
 
 decisions_bp = Blueprint("decisions", __name__)
 
@@ -19,6 +20,8 @@ def search_parameters():
         "page": page,
         "size": size,
         "include_supervised": supervised == "true",
+        "decision_type": request.args.get("type", ""),
+        "thematic_category": request.args.get("tag", ""),
     }
 
 
@@ -46,6 +49,34 @@ def decisions():
         return jsonify(error=str(exc)), 400
     except DiavgeiaError as exc:
         return jsonify(error=str(exc)), 503
+
+
+@decisions_bp.route("/api/filters")
+def filters():
+    try:
+        return jsonify(diavgeia.filters())
+    except DiavgeiaError as exc:
+        return jsonify(error=str(exc)), 503
+
+
+@decisions_bp.route("/document/<ada>")
+def preview_pdf(ada):
+    try:
+        pdf, length = fetch_pdf(ada)
+    except DocumentError as exc:
+        return jsonify(error=str(exc)), exc.status_code
+    try:
+        response = send_file(pdf, mimetype="application/pdf", download_name=f"{ada}.pdf",
+                             as_attachment=False, conditional=False, etag=False)
+        response.content_length = length
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+        response.call_on_close(pdf.close)
+        return response
+    except Exception:
+        pdf.close()
+        raise
 
 
 @decisions_bp.route("/download/<ada>")
