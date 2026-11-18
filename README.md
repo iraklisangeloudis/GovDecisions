@@ -42,9 +42,10 @@ docker compose -f docker-compose.dev.yml down
 
 ## Run tests
 
-After installing the dependencies above:
+Install the test dependencies, then run:
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest
 ```
 
