@@ -55,7 +55,6 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .sidebar-footnote { padding: 22px 12px 0; margin: 20px 0 0; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; }
 main { min-width: 0; padding: 44px clamp(22px, 4vw, 72px) 70px; }
 .empty-state { max-width: 660px; margin: clamp(40px, 10vh, 120px) auto 40px; }
-.empty-symbol { display: grid; place-items: center; width: 58px; height: 58px; border: 1px solid var(--border); border-radius: 15px; color: var(--accent); background: var(--surface); font-size: 29px; margin-bottom: 30px; }
 .eyebrow { color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 1.8px; margin: 0 0 13px; }
 .empty-state h1 { font-size: clamp(30px, 3.8vw, 46px); line-height: 1.25; font-weight: 600; letter-spacing: -1.6px; margin: 0 0 20px; }
 .empty-description { color: var(--muted); font-size: 16px; max-width: 430px; margin: 0 0 30px; }
@@ -64,8 +63,6 @@ main { min-width: 0; padding: 44px clamp(22px, 4vw, 72px) 70px; }
 .primary-button:hover { opacity: .85; }
 .secondary-button { background: var(--surface); color: var(--text); }
 .secondary-button:hover { background: var(--surface-hover); }
-.primary-button span { margin-left: 20px; }
-.welcome-note { font-size: 11px; color: var(--muted); margin-top: 45px; max-width: 380px; }
 .decision-view { max-width: 960px; margin: 0 auto; }
 .view-heading { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
 .view-heading h1 { font-size: clamp(21px, 2.3vw, 30px); line-height: 1.4; letter-spacing: -.7px; font-weight: 600; margin: 0; overflow-wrap: anywhere; }
