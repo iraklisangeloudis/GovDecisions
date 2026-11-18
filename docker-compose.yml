@@ -1,19 +1,12 @@
-version: '3'
-
 services:
   flask-app:
     build: .
     ports:
       - "8080:8080"
-    environment:
-      - FLASK_ENV=production  # Production environment
 
   tests:
     build:
       context: .
       dockerfile: Dockerfile.test
-    command: pytest
-    environment:
-      - PYTHONPATH=/app  # Add the app directory to the Python path
     volumes:
       - .:/app

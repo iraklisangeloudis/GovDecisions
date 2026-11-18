@@ -1,5 +1,14 @@
+# Python
 __pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Local configuration and credentials
+.env
 key.json
+
+# Terraform
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl

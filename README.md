@@ -1,93 +1,58 @@
-# Flask Web Application for Gov Decisions
+# Government Decisions Browser
 
-This repository contains a Python-based web application using Flask that displays the most recent documents from an XML feed. Each document is displayed with its subject and submission timestamp, and users can click to download the corresponding PDF. The app provides a simple, user-friendly interface for accessing public documents from the "Diavgeia Program (https://www.diavgeia.gov.gr/api/help).
+A Flask app for browsing Greek government decisions published on Diavgeia.
 
-## Getting Started
+## Run locally
 
-### Prerequisites
+Requires Python 3.12. From PowerShell in the project directory:
 
-* **Python**: Ensure Python is installed and added to your system's PATH.
-* **Docker**: Install Docker Desktop for building and running the app in containers.
-
-### Setup Instructions
-
-1. **Clone the Repository**:
-
-   ```cmd
-   git clone https://github.com/iraklisangeloudis/GovDecisions.git
-   cd GovDecisions
-   ```
-
-2. **Install Dependencies** (If not using Docker):
-   Create a virtual environment and install dependencies:
-
-   ```cmd
-   python -m venv venv
-   venv\Scripts\activate  # For Windows
-   pip install -r requirements.txt
-   ```
-
-3. **Run the Flask Application Locally**:
-   If running locally without Docker:
-
-   ```cmd
-   python app.py
-   ```
-
-   Open a web browser and go to `http://127.0.0.1:8080/` to view the application.
-
-### Docker Setup
-
-To run the app in a Docker container:
-
-1. **Build the Docker Image**:
-
-   ```cmd
-   docker build -t flask-app .
-   ```
-
-2. **Run the Docker Container**:
-
-   ```cmd
-   docker run -p 8080:8080 flask-app
-   ```
-
-   Now, go to `http://localhost:8080` in your web browser to access the application.
-
-#### (Optional) Using Docker Compose:
-
-If you have a `docker-compose.yml` file, you can use Docker Compose to simplify running the app:
-
-```cmd
-docker-compose build
-docker-compose up
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
 ```
 
-## Folder Structure
+Open http://127.0.0.1:5000/.
 
+## Run with Docker
+
+Requires Docker Desktop running with Linux containers.
+
+```powershell
+docker compose up --build -d flask-app
 ```
-GovDecisions/
-│
-├── app.py                 # Main Flask application entry point
-├── routes/
-│   └── decisions.py       # Blueprint containing route logic
-├── utils/
-│   └── xml_parser.py      # Helper function to fetch and parse XML data
-├── templates/
-│   └── index.html         # HTML template to display recent decisions
-├── static/
-│   └── styles.css         # CSS file for styling the app
-├── .github/workflows/
-│   └── docker-ci.yml      # CI Pipeline
-├── tests/                 # Tests folder
-│   └── test_decisions.py  
-├── Dockerfile             # Instructions to build Docker image
-├── Dockerfile.test        # Instructions to build Docker image for testing
-├── .dockerignore          # Files and directories to ignore when building the Docker image
-├── requirements.txt       # List of dependencies
-├── docker-compose.yml     # Docker Compose file for production
-├── docker-compose.dev.yml # Docker Compose file for development
-└── README.md              # Project documentation
+
+Open http://127.0.0.1:8080/. To stop:
+
+```powershell
+docker compose down
+```
+
+To use the local source files inside the container:
+
+```powershell
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Restart the container after code changes. To stop the development stack:
+
+```powershell
+docker compose -f docker-compose.dev.yml down
+```
+
+## Run tests
+
+After installing the dependencies above:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+```
+
+Or with Docker:
+
+```powershell
+docker compose build tests
+docker compose run --rm tests
 ```
 
 ## License

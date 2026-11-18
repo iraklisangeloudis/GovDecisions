@@ -1,16 +1,25 @@
-# Ignore Python cache
-__pycache__/
-*.pyc
-*.pyo
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
 
-# Ignore virtual environments
+# Virtual environments
 .venv/
 env/
 
-# Ignore Git repo
+# Git
 .git/
 .gitignore
+.github/
 
-# Ignore IDE-specific files
+# IDE files
 .vscode/
 .idea/
+
+# Credentials and local configuration
+key.json
+.env
+.env.*
+
+# Infrastructure
+terraform/
