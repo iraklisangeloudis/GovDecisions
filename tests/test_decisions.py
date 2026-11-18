@@ -39,16 +39,13 @@ def client(api):
         yield client
 
 
-def test_homepage_uses_json_and_formats_dates(client, api):
+def test_homepage_loads_without_upstream(client, api):
     response = client.get("/")
     assert response.status_code == 200
-    assert b"Test decision" in response.data
-    assert b"01/01/1970 00:00 UTC" in response.data
-    assert b"https://diavgeia.gov.gr/doc/TEST-1" in response.data
-    query = api.last_request.qs
-    assert query["org"] == ["6"]
-    assert "type" not in query
-    assert api.last_request.timeout == DIAVGEIA_TIMEOUT
+    assert b'id="sidebar"' in response.data
+    assert b'id="welcome-state"' in response.data
+    assert b'/static/app.js' in response.data
+    assert not api.called
 
 
 def test_no_selected_organization_does_not_fetch(client, api):
@@ -69,6 +66,9 @@ def test_pagination_parameters_and_end(client, api):
     assert data["total"] == 21
     assert data["hasMore"] is False
     assert api.last_request.qs["page"] == ["1"]
+    assert api.last_request.qs["org"] == ["6"]
+    assert "type" not in api.last_request.qs
+    assert api.last_request.timeout == DIAVGEIA_TIMEOUT
 
 
 def test_empty_page_stops_pagination(client, api):
@@ -142,7 +142,7 @@ def test_cache_refresh_and_stale_expiry(client, api, monkeypatch):
     response = client.get("/api/decisions?org=6")
     assert response.status_code == 200
     assert response.json["stale"] is True
-    assert b"previously fetched" in client.get("/").data
+    assert response.json["decisions"][0]["ada"] == "TEST-1"
     clock[0] = 360
     assert client.get("/api/decisions?org=6").status_code == 503
     api.get(f"{DIAVGEIA_API_URL}/search.json", json=results([decision("NEW-1")]))
