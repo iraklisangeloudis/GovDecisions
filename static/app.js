@@ -10,7 +10,7 @@
             retry: 'Δοκιμή ξανά', source: 'Πηγή δεδομένων: Διαύγεια', browse: 'ΠΕΡΙΗΓΗΣΗ ΣΤΙΣ ΑΠΟΦΑΣΕΙΣ',
             welcomeTitle: 'Οι δημόσιες αποφάσεις, σε ένα σημείο.', welcomeText: 'Επίλεξε έναν φορέα για να δεις τις αποφάσεις του.',
             chooseMinistry: 'Επιλογή φορέα →', officialContent: 'Οι τίτλοι και τα έγγραφα διατηρούν την επίσημη γλώσσα τους.',
-            recentDecisions: 'ΠΡΟΣΦΑΤΕΣ ΑΠΟΦΑΣΕΙΣ', clear: 'Καθαρισμός επιλογής',
+            recentDecisions: 'ΠΡΟΣΦΑΤΕΣ ΑΠΟΦΑΣΕΙΣ',
             supervised: 'Συμπερίληψη εποπτευόμενων φορέων', dateRange: 'Τελευταίες 180 ημέρες · πιο πρόσφατες ενημερώσεις πρώτα',
             stale: 'Η Διαύγεια δεν είναι διαθέσιμη. Εμφανίζονται προηγούμενα αποτελέσματα.',
             loading: 'Φόρτωση αποφάσεων…', empty: 'Δεν βρέθηκαν αποφάσεις για αυτόν τον φορέα.',
@@ -31,7 +31,7 @@
             retry: 'Try again', source: 'Data source: Diavgeia', browse: 'BROWSE PUBLIC DECISIONS',
             welcomeTitle: 'Public decisions, in one place.', welcomeText: 'Select an organization to browse its decisions.',
             chooseMinistry: 'Choose an organization →', officialContent: 'Titles and documents remain in their official language.',
-            recentDecisions: 'RECENT DECISIONS', clear: 'Clear selection', supervised: 'Include supervised organizations',
+            recentDecisions: 'RECENT DECISIONS', supervised: 'Include supervised organizations',
             dateRange: 'Last 180 days · most recently updated first',
             stale: 'Diavgeia is unavailable. Showing previously fetched results.',
             loading: 'Loading decisions…', empty: 'No decisions found for this organization.',
@@ -256,7 +256,6 @@
     $('menu-toggle').addEventListener('click', () => setSidebar(!sidebarOpen));
     $('choose-ministry').addEventListener('click', () => setSidebar(true, true));
     $('sidebar-backdrop').addEventListener('click', () => { setSidebar(false); $('menu-toggle').focus(); });
-    $('clear-selection').addEventListener('click', () => selectOrganization(selected));
     $('organizations-retry').addEventListener('click', loadOrganizations);
     $('load-more').addEventListener('click', loadMore);
     $('open-filters').addEventListener('click', () => window.searchFilters.open(selected));
