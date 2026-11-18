@@ -208,3 +208,56 @@ def test_preview_size_limit_without_content_length(client, api, monkeypatch):
     api.get("https://diavgeia.gov.gr/doc/TEST-1", content=b"%PDF-1.4 oversized",
             headers={"Content-Type": "application/pdf"})
     assert client.get("/document/TEST-1").status_code == 413
+
+
+def test_common_search_filters_reach_upstream(client, api):
+    response = client.get("/api/decisions", query_string={
+        "org": "6", "term": "budget", "ada": "TEST-1",
+        "protocol": "123", "status": "all",
+    })
+    assert response.status_code == 200
+    for name, value in {"term": "budget", "ada": "test-1",
+                        "protocol": "123", "status": "all"}.items():
+        assert api.last_request.qs[name] == [value]
+
+
+def test_historical_dates_use_inclusive_advanced_query(client, api):
+    api.get(f"{DIAVGEIA_API_URL}/search/advanced.json", json=results())
+    response = client.get("/api/decisions?org=6&issue_from=2020-01-01&issue_to=2020-01-31&updated_from=2020-02-01&updated_to=2020-02-29")
+    assert response.status_code == 200
+    query = api.last_request.qs["q"][0]
+    assert "issuedate:[dt(2020-01-01t00:00:00) to dt(2020-01-31t23:59:59)]" in query
+    assert "submissiontimestamp:[dt(2020-02-01t00:00:00) to dt(2020-02-29t23:59:59)]" in query
+
+
+@pytest.mark.parametrize("query", [
+    "issue_from=2020-01-01&issue_to=2020-12-31", "updated_from=2020-01-01", "status=invalid",
+])
+def test_invalid_advanced_filters_fail_before_network(client, api, query):
+    assert client.get("/api/decisions?org=6&" + query).status_code == 400
+    assert not api.called
+
+
+def test_special_amounts_are_validated_and_added_to_query(client, api):
+    import json
+    api.get(f"{DIAVGEIA_API_URL}/types/A.1/details.json", json={"extraFields": [{
+        "type": "object", "nestedFields": [{"searchTerm": "amount", "type": "number"}]
+    }]})
+    api.get(f"{DIAVGEIA_API_URL}/types/A.1/terms.json", json={"terms": [{"term": "amount", "label": "Amount"}]})
+    api.get(f"{DIAVGEIA_API_URL}/search/advanced.json", json=results())
+    response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"amount": {"min": "100", "max": "5000"}})})
+    assert response.status_code == 200
+    assert "amount:[100 to 5000]" in api.last_request.qs["q"][0]
+    response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"unrecognizedField": "value"})})
+    assert response.status_code == 400
+
+
+def test_special_strings_cannot_inject_query_terms(client, api):
+    import json
+    api.get(f"{DIAVGEIA_API_URL}/types/A.1/details.json", json={"extraFields": [{"searchTerm": "receiverName", "type": "string"}]})
+    api.get(f"{DIAVGEIA_API_URL}/types/A.1/terms.json", json={"terms": [{"term": "receiverName", "label": "Name"}]})
+    api.get(f"{DIAVGEIA_API_URL}/search/advanced.json", json=results())
+    value = 'name" OR status:"revoked'
+    response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"receiverName": value})})
+    assert response.status_code == 200
+    assert ('receiverName:' + json.dumps(value)).lower() in api.last_request.qs["q"][0]

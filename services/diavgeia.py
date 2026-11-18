@@ -3,12 +3,15 @@
 from collections import OrderedDict
 from copy import deepcopy
 import logging
+import json
 import re
 from threading import Lock
 from time import monotonic
 from urllib.parse import quote
 
 import requests
+
+from services.search_filters import validate_filters, advanced_query
 
 from config import (
     DECISIONS_CACHE_SECONDS, DIAVGEIA_API_URL, DIAVGEIA_TIMEOUT,
@@ -120,8 +123,47 @@ class DiavgeiaClient:
         return {"decisionTypes": types, "thematicCategories": themes,
                 "stale": types_stale or themes_stale}
 
+    def special_fields(self, decision_type):
+        if not isinstance(decision_type, str) or not re.fullmatch(r"[\w.-]{1,40}", decision_type):
+            raise ValueError("Invalid decision type.")
+
+        def fetch():
+            encoded = quote(decision_type, safe="")
+            details = self._get(f"types/{encoded}/details.json")
+            terms = self._get(f"types/{encoded}/terms.json").get("terms")
+            if not isinstance(details.get("extraFields"), list) or not isinstance(terms, list):
+                raise DiavgeiaError("Invalid special filter options.")
+            labels = {row["term"]: row.get("label", row["term"]) for row in terms if isinstance(row, dict) and row.get("term")}
+            fields = {}
+
+            def visit(rows):
+                for row in rows:
+                    term = row.get("searchTerm")
+                    if term in labels and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", term):
+                        fields[term] = {"term": term, "label": labels[term],
+                                        "type": row.get("type", "string"),
+                                        "dictionary": row.get("dictionary"),
+                                        "options": row.get("fixedValueList") or []}
+                    visit(row.get("nestedFields") or [])
+            visit(details["extraFields"])
+            return list(fields.values())
+        fields, stale = self._cached(("special", decision_type), ORGANIZATIONS_CACHE_SECONDS, fetch)
+        return {"fields": fields, "stale": stale}
+
+    def dictionary(self, name):
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{0,60}", name):
+            raise ValueError("Invalid dictionary ID.")
+        def fetch():
+            items = self._get(f"dictionaries/{name}.json").get("items")
+            if not isinstance(items, list):
+                raise DiavgeiaError("Invalid dictionary options.")
+            return [{"uid": str(row["uid"]), "label": row["label"]}
+                    for row in items if isinstance(row, dict) and row.get("uid") and row.get("label")]
+        items, stale = self._cached(("dictionary", name), ORGANIZATIONS_CACHE_SECONDS, fetch)
+        return {"items": items, "stale": stale}
+
     def decisions(self, org, page=0, size=20, include_supervised=False,
-                  decision_type="", thematic_category=""):
+                  decision_type="", thematic_category="", **search_filters):
         if not isinstance(org, str) or not re.fullmatch(r"[0-9]{1,20}", org):
             raise ValueError("org must be a numeric organization ID.")
         if type(page) is not int or not 0 <= page <= 10000:
@@ -133,6 +175,9 @@ class DiavgeiaClient:
         for name, value in (("type", decision_type), ("tag", thematic_category)):
             if not isinstance(value, str) or (value and not re.fullmatch(r"[\w.-]{1,40}", value)):
                 raise ValueError(f"Invalid {name} filter.")
+        search_filters = validate_filters(search_filters)
+        if search_filters["extra"] and not decision_type:
+            raise ValueError("A decision type is required for special filters.")
         organizations, catalog_stale = self.organizations()
         labels = {row["uid"]: row["label"] for row in organizations}
         if org not in labels:
@@ -152,13 +197,21 @@ class DiavgeiaClient:
         def fetch():
             params = {
                 "org": ";".join(sorted(ids)), "page": page, "size": size,
-                "sort": "recent", "status": "published",
+                "sort": "recent", "status": search_filters["status"],
             }
             if decision_type:
                 params["type"] = decision_type
             if thematic_category:
                 params["tag"] = thematic_category
-            data = self._get("search.json", params)
+            for name in ("term", "ada", "protocol"):
+                if search_filters.get(name):
+                    params[name] = search_filters[name]
+            if search_filters.get("issue_from") or search_filters.get("updated_from") or search_filters["extra"]:
+                fields = self.special_fields(decision_type)["fields"] if search_filters["extra"] else []
+                query = advanced_query(params, search_filters, fields)
+                data = self._get("search/advanced.json", {"q": query, "page": page, "size": size, "sort": "recent"})
+            else:
+                data = self._get("search.json", params)
             rows, info = data.get("decisions"), data.get("info")
             if not isinstance(rows, list) or not isinstance(info, dict):
                 raise DiavgeiaError("Diavgeia returned invalid search results.")
@@ -184,6 +237,7 @@ class DiavgeiaClient:
                     "submissionTimestamp": row.get("submissionTimestamp"),
                     "decisionTypeId": row.get("decisionTypeId"),
                     "thematicCategoryIds": row.get("thematicCategoryIds") or [],
+                    "status": row.get("status", "PUBLISHED"),
                     "documentUrl": document_url(ada),
                 })
             if rows and not decisions:
@@ -193,7 +247,8 @@ class DiavgeiaClient:
                 "hasMore": bool(rows) and (page + 1) * size < total,
             }
         result, stale = self._cached(
-            ("decisions", tuple(sorted(ids)), page, size, decision_type, thematic_category),
+            ("decisions", tuple(sorted(ids)), page, size, decision_type, thematic_category,
+             json.dumps(search_filters, sort_keys=True, ensure_ascii=False)),
             DECISIONS_CACHE_SECONDS, fetch,
         )
         result["stale"] = stale or catalog_stale

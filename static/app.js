@@ -4,6 +4,7 @@
     const $ = (id) => document.getElementById(id);
     const copy = {
         el: {
+            filtersButton: 'Φίλτρα',
             brand: 'Δημόσιες αποφάσεις', tagline: 'Αναρτήσεις από τη Διαύγεια', skip: 'Στο περιεχόμενο',
             ministries: 'Υπουργεία', chooseOne: 'Επίλεξε έναν φορέα', loadingMinistries: 'Φόρτωση υπουργείων…',
             retry: 'Δοκιμή ξανά', source: 'Πηγή δεδομένων: Διαύγεια', browse: 'ΠΕΡΙΗΓΗΣΗ ΣΤΙΣ ΑΠΟΦΑΣΕΙΣ',
@@ -18,14 +19,13 @@
             shown: (n, total) => `${n} από ${total} αποφάσεις`, openMenu: 'Άνοιγμα μενού φορέων', closeMenu: 'Κλείσιμο μενού φορέων',
             lightTheme: 'Ανοιχτό θέμα', darkTheme: 'Σκούρο θέμα', noMinistries: 'Δεν βρέθηκαν διαθέσιμα υπουργεία.',
             catalogStale: 'Εμφανίζεται προηγούμενος κατάλογος φορέων.',
-            decisionType: 'Είδος πράξης', thematicCategory: 'Θεματική ενότητα', allTypes: 'Όλα τα είδη', allThemes: 'Όλες οι ενότητες',
-            clearFilters: 'Καθαρισμός φίλτρων', loadingFilters: 'Φόρτωση επιλογών φίλτρων…', filtersError: 'Τα φίλτρα δεν είναι διαθέσιμα. Μπορείς να συνεχίσεις την περιήγηση.',
             preview: 'Προεπισκόπηση PDF', download: 'Λήψη PDF', newTab: 'Άνοιγμα σε νέα καρτέλα', closePreview: 'Κλείσιμο προεπισκόπησης',
             pdfLoading: 'Φόρτωση PDF…', pdfError: 'Δεν ήταν δυνατή η προεπισκόπηση. Δοκίμασε ξανά ή κατέβασε το PDF.',
             pdfTooLarge: 'Το PDF είναι πολύ μεγάλο για προεπισκόπηση. Μπορείς να το κατεβάσεις.',
             pdfHelp: 'Αν δεν εμφανίζεται η προεπισκόπηση, άνοιξε το PDF σε νέα καρτέλα ή κατέβασέ το.',
         },
         en: {
+            filtersButton: 'Filters',
             brand: 'Public decisions', tagline: 'Publications from Diavgeia', skip: 'Skip to content',
             ministries: 'Ministries', chooseOne: 'Select an organization', loadingMinistries: 'Loading ministries…',
             retry: 'Try again', source: 'Data source: Diavgeia', browse: 'BROWSE PUBLIC DECISIONS',
@@ -40,8 +40,6 @@
             shown: (n, total) => `${n} of ${total} decisions`, openMenu: 'Open organization menu', closeMenu: 'Close organization menu',
             lightTheme: 'Light theme', darkTheme: 'Dark theme', noMinistries: 'No ministries available.',
             catalogStale: 'Showing a previously fetched organization list.',
-            decisionType: 'Decision type', thematicCategory: 'Thematic category', allTypes: 'All types', allThemes: 'All categories',
-            clearFilters: 'Clear filters', loadingFilters: 'Loading filter options…', filtersError: 'Filters are unavailable. You can continue browsing.',
             preview: 'PDF preview', download: 'Download PDF', newTab: 'Open in new tab', closePreview: 'Close preview',
             pdfLoading: 'Loading PDF…', pdfError: 'Unable to preview this PDF. Try again or download it.',
             pdfTooLarge: 'This PDF is too large to preview. You can download it instead.',
@@ -54,21 +52,18 @@
     let organizations = [];
     let catalogState = 'loading';
     let selected = null;
-    let includeSupervised = false;
     let controller = null;
-    let decisionType = '';
-    let thematicCategory = '';
-    let filterState = 'idle';
+    let pendingState = null;
     const views = new Map();
     const mobile = matchMedia('(max-width: 760px)');
     let sidebarOpen = !mobile.matches;
     const t = (key) => copy[language][key];
-    const viewKey = () => JSON.stringify([selected, includeSupervised, decisionType, thematicCategory]);
+    const viewKey = () => JSON.stringify([selected, window.searchFilters.parameters()]);
     const current = () => selected ? views.get(viewKey()) : null;
     const number = (value) => new Intl.NumberFormat(language === 'el' ? 'el-GR' : 'en-GB').format(value);
     const observer = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => {
         const state = current();
-        if (!$('pdf-dialog').open && entries.some((entry) => entry.isIntersecting) && state && state.loaded && state.more && !state.loading && !state.error) loadMore();
+        if (!$('pdf-dialog').open && !$('filter-dialog').open && entries.some((entry) => entry.isIntersecting) && state && state.loaded && state.more && !state.loading && !state.error) loadMore();
     }, { rootMargin: '0px 0px 240px 0px' }) : null;
 
     function setSidebar(open, focusFirst = false) {
@@ -98,7 +93,7 @@
         $('theme-toggle').setAttribute('aria-label', t(dark ? 'lightTheme' : 'darkTheme'));
         setSidebar(sidebarOpen);
         renderCatalogStatus();
-        renderFilterStatus();
+        window.searchFilters.updateLanguage();
         window.pdfPreview.updateLanguage(t);
     }
 
@@ -135,49 +130,11 @@
         renderCatalogStatus();
     }
 
-    function renderFilterStatus() {
-        const message = { loading: 'loadingFilters', error: 'filtersError', stale: 'catalogStale' }[filterState];
-        $('filters-status').textContent = message ? t(message) : '';
-        $('filters-retry').hidden = filterState !== 'error';
-        $('decision-type').disabled = $('thematic-category').disabled = !['ready', 'stale'].includes(filterState);
-        $('filters').setAttribute('aria-label', `${t('decisionType')} / ${t('thematicCategory')}`);
-    }
-
-    async function loadFilters() {
-        if (filterState === 'loading' || filterState === 'ready' || filterState === 'stale') return;
-        filterState = 'loading';
-        renderFilterStatus();
-        try {
-            const response = await fetch('/api/filters');
-            if (!response.ok) throw new Error('upstream');
-            const data = await response.json();
-            if (!Array.isArray(data.decisionTypes) || !Array.isArray(data.thematicCategories)) throw new Error('invalid response');
-            for (const [id, options] of [['decision-type', data.decisionTypes], ['thematic-category', data.thematicCategories]]) {
-                const select = $(id);
-                while (select.options.length > 1) select.remove(1);
-                for (const item of options) select.add(new Option(item.label, item.uid));
-            }
-            filterState = data.stale ? 'stale' : 'ready';
-        } catch (_) { filterState = 'error'; }
-        renderFilterStatus();
-    }
-
-    function changeScope(supervised, type, theme) {
-        const id = selected;
-        if (!id) return;
-        abortPending();
-        includeSupervised = supervised;
-        decisionType = type;
-        thematicCategory = theme;
-        views.delete(viewKey());
-        selected = null;
-        selectOrganization(id);
-    }
-
     function abortPending() {
-        if (current()) current().loading = false;
+        if (pendingState) pendingState.loading = false;
         controller?.abort();
         controller = null;
+        pendingState = null;
     }
 
     function selectOrganization(id) {
@@ -194,7 +151,6 @@
         render();
         if (mobile.matches) setSidebar(false);
         window.scrollTo({ top: current()?.scroll || 0, behavior: 'instant' });
-        if (selected) loadFilters();
         if (selected && !current().loaded) loadMore();
         if (!sidebarOpen) $('main-content').focus({ preventScroll: true });
     }
@@ -221,6 +177,8 @@
         if (row.organizationId !== selected) {
             card.append(textElement('p', 'decision-organization', row.organizationLabel));
         }
+        const status = window.searchFilters.statusLabel(row.status);
+        if (status) card.append(textElement('p', 'decision-status', status));
         card.append(textElement('h2', '', row.subject));
         const footer = textElement('div', 'decision-footer', '');
         const meta = textElement('div', 'decision-meta', '');
@@ -243,10 +201,7 @@
         $('decision-view').hidden = !selected;
         if (!state) { $('decision-list').replaceChildren(); return; }
         $('selected-title').textContent = organizations.find((org) => org.uid === selected)?.label || '';
-        $('include-supervised').checked = includeSupervised;
-        $('decision-type').value = decisionType;
-        $('thematic-category').value = thematicCategory;
-        $('clear-filters').hidden = !decisionType && !thematicCategory;
+        window.searchFilters.renderSummary();
         $('decision-list').replaceChildren(...state.rows.map(renderCard));
         $('decision-list').setAttribute('aria-busy', String(state.loading));
         $('stale-notice').hidden = !state.stale;
@@ -268,10 +223,11 @@
         if (!state || state.loading || !state.more) return;
         const requestController = new AbortController();
         controller = requestController;
+        pendingState = state;
         state.loading = true;
         state.error = false;
         render();
-        const query = new URLSearchParams({ org: selected, page: state.nextPage, size: 20, include_supervised: includeSupervised, type: decisionType, tag: thematicCategory });
+        const query = new URLSearchParams({ org: selected, page: state.nextPage, size: 20, ...window.searchFilters.parameters() });
         try {
             const response = await fetch(`/api/decisions?${query}`, { signal: requestController.signal });
             if (!response.ok) throw new Error('upstream');
@@ -290,6 +246,7 @@
         } finally {
             if (controller === requestController) {
                 controller = null;
+                pendingState = null;
                 state.loading = false;
                 render();
             }
@@ -302,11 +259,15 @@
     $('clear-selection').addEventListener('click', () => selectOrganization(selected));
     $('organizations-retry').addEventListener('click', loadOrganizations);
     $('load-more').addEventListener('click', loadMore);
-    $('include-supervised').addEventListener('change', (event) => changeScope(event.target.checked, decisionType, thematicCategory));
-    $('decision-type').addEventListener('change', (event) => changeScope(includeSupervised, event.target.value, thematicCategory));
-    $('thematic-category').addEventListener('change', (event) => changeScope(includeSupervised, decisionType, event.target.value));
-    $('clear-filters').addEventListener('click', () => changeScope(includeSupervised, '', ''));
-    $('filters-retry').addEventListener('click', loadFilters);
+    $('open-filters').addEventListener('click', () => window.searchFilters.open(selected));
+    document.addEventListener('filters-applied', () => {
+        if (!selected) return;
+        const id = selected;
+        abortPending();
+        views.delete(viewKey());
+        selected = null;
+        selectOrganization(id);
+    });
     $('language-toggle').addEventListener('click', () => {
         language = language === 'el' ? 'en' : 'el';
         persist('decisions-language', language);
@@ -323,7 +284,7 @@
     });
     mobile.addEventListener('change', () => setSidebar(!mobile.matches));
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && sidebarOpen && !$('pdf-dialog').open) { setSidebar(false); $('menu-toggle').focus(); }
+        if (event.key === 'Escape' && sidebarOpen && !$('pdf-dialog').open && !$('filter-dialog').open) { setSidebar(false); $('menu-toggle').focus(); }
     });
     updateChrome();
     render();

@@ -14,6 +14,7 @@
     </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script src="{{ url_for('static', filename='pdf-preview.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='filters.js') }}" defer></script>
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -57,14 +58,8 @@
 
             <section class="decision-view" id="decision-view" aria-labelledby="selected-title" hidden>
                 <div class="view-heading"><div><p class="eyebrow" data-i18n="recentDecisions">ΠΡΟΣΦΑΤΕΣ ΑΠΟΦΑΣΕΙΣ</p><h1 id="selected-title"></h1></div><button type="button" class="text-button clear-button" id="clear-selection" data-i18n="clear">Καθαρισμός επιλογής</button></div>
-                <div class="view-options"><label class="supervised-option"><input type="checkbox" id="include-supervised"><span data-i18n="supervised">Συμπερίληψη εποπτευόμενων φορέων</span></label><p data-i18n="dateRange">Τελευταίες 180 ημέρες · πιο πρόσφατες ενημερώσεις πρώτα</p></div>
-                <div class="filters" aria-label="Φίλτρα" id="filters">
-                    <label class="filter-field"><span data-i18n="decisionType">Είδος πράξης</span><span class="select-wrap"><select id="decision-type" disabled><option value="" data-i18n="allTypes">Όλα τα είδη</option></select></span></label>
-                    <label class="filter-field"><span data-i18n="thematicCategory">Θεματική ενότητα</span><span class="select-wrap"><select id="thematic-category" disabled><option value="" data-i18n="allThemes">Όλες οι ενότητες</option></select></span></label>
-                    <button type="button" class="text-button" id="clear-filters" data-i18n="clearFilters" hidden>Καθαρισμός φίλτρων</button>
-                    <p class="filter-status" id="filters-status" role="status"></p>
-                    <button type="button" class="text-button" id="filters-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button>
-                </div>
+                <div class="filter-bar"><button type="button" class="secondary-button" id="open-filters"><span data-i18n="filtersButton">Φίλτρα</span><span id="filter-count" class="filter-count" hidden></span></button><p id="search-period"></p></div>
+                <div class="active-filters" id="active-filters" aria-label="Ενεργά φίλτρα"></div>
                 <p class="notice" id="stale-notice" role="status" data-i18n="stale" hidden>Η Διαύγεια δεν είναι διαθέσιμη. Εμφανίζονται προηγούμενα αποτελέσματα.</p>
                 <p class="results-summary" id="results-summary" aria-live="polite"></p>
                 <div class="decision-list" id="decision-list" aria-busy="false"></div>
@@ -75,6 +70,38 @@
             <noscript>Για την περιήγηση απαιτείται JavaScript. / Enable JavaScript to browse decisions.</noscript>
         </main>
     </div>
+    <dialog class="filter-dialog" id="filter-dialog" aria-labelledby="filter-title">
+        <form id="filter-form">
+            <header class="filter-modal-header"><div><h2 id="filter-title" data-filter-i18n="title">Φίλτρα αναζήτησης</h2><p id="filter-organization"></p></div><button type="button" class="icon-button" id="close-filters" aria-label="Κλείσιμο">×</button></header>
+            <div class="filter-modal-body">
+                <fieldset><legend data-filter-i18n="search">Αναζήτηση</legend><label class="filter-field"><span data-filter-i18n="term">Λέξεις αναζήτησης</span><input name="term" maxlength="300" type="search" placeholder="π.χ. προσλήψεις, προμήθεια εξοπλισμού"></label></fieldset>
+                <fieldset><legend data-filter-i18n="classification">Κατηγοριοποίηση</legend><div class="filter-grid">
+                    <label class="filter-field"><span data-filter-i18n="type">Είδος πράξης</span><span class="select-wrap"><select name="type" id="modal-type"><option value=""></option></select></span></label>
+                    <label class="filter-field"><span data-filter-i18n="theme">Θεματική ενότητα</span><span class="select-wrap"><select name="tag" id="modal-theme"><option value=""></option></select></span></label>
+                </div><p id="filter-options-status" role="status"></p><button type="button" class="text-button" id="retry-filter-options" data-filter-i18n="retry" hidden>Δοκιμή ξανά</button></fieldset>
+                <fieldset><legend data-filter-i18n="dates">Ημερομηνίες</legend><p class="field-help" data-filter-i18n="issueHelp">Μπορείς να αναζητήσεις έως 180 ημερολογιακές ημέρες ανά φορά.</p><div class="filter-grid">
+                    <label class="filter-field"><span data-filter-i18n="issueFrom">Έκδοση από</span><input name="issue_from" type="date" required></label>
+                    <label class="filter-field"><span data-filter-i18n="issueTo">Έκδοση έως</span><input name="issue_to" type="date" required></label>
+                </div></fieldset>
+                <fieldset><label class="supervised-option"><input name="include_supervised" type="checkbox"><span data-filter-i18n="supervised">Συμπερίληψη εποπτευόμενων φορέων</span></label></fieldset>
+                <details id="more-filter-options"><summary data-filter-i18n="more">Περισσότερες επιλογές</summary>
+                    <div class="filter-grid">
+                        <label class="filter-field"><span>ΑΔΑ / ADA</span><input name="ada" maxlength="80" aria-describedby="ada-help"><small class="field-help" id="ada-help" data-filter-i18n="adaHelp">Μοναδικός κωδικός απόφασης, π.χ. 9ΖΔΠ46ΨΧΗ5-Ζ16.</small></label>
+                        <label class="filter-field"><span data-filter-i18n="protocol">Αριθμός πρωτοκόλλου</span><input name="protocol" maxlength="300" aria-describedby="protocol-help"><small class="field-help" id="protocol-help" data-filter-i18n="protocolHelp">Συμπλήρωσέ τον μόνο αν γνωρίζεις τον αριθμό πρωτοκόλλου.</small></label>
+                        <label class="filter-field"><span data-filter-i18n="status">Κατάσταση</span><span class="select-wrap"><select name="status"><option value="published" data-filter-i18n="published">Αναρτημένες</option><option value="revoked" data-filter-i18n="revoked">Ανακληθείσες</option><option value="pending_revocation" data-filter-i18n="pending">Σε αναμονή ανάκλησης</option><option value="all" data-filter-i18n="allStatuses">Όλες οι καταστάσεις</option></select></span></label>
+                    </div>
+                    <fieldset><legend data-filter-i18n="updated">Διάστημα ενημέρωσης</legend><p class="field-help" data-filter-i18n="dateHelp">Η τελευταία ενημέρωση είναι επιπλέον κριτήριο μέσα στο διάστημα έκδοσης.</p><div class="filter-grid">
+                        <label class="filter-field"><span data-filter-i18n="updatedFrom">Ενημέρωση από</span><input name="updated_from" type="date"></label>
+                        <label class="filter-field"><span data-filter-i18n="updatedTo">Ενημέρωση έως</span><input name="updated_to" type="date"></label>
+                    </div></fieldset>
+                <details id="special-section" hidden><summary data-filter-i18n="special">Ειδικά κριτήρια είδους πράξης</summary><p class="field-help" data-filter-i18n="specialHelp">Εμφανίζονται τα διαθέσιμα πεδία της Διαύγειας για το επιλεγμένο είδος. Τα λεξικά φορτώνονται όταν ανοίγεις ένα πεδίο.</p><div class="filter-grid" id="special-fields"></div></details>
+                <p id="special-status" role="status"></p><button type="button" class="text-button" id="retry-special" data-filter-i18n="retry" hidden>Δοκιμή ξανά</button>
+                </details>
+                <p id="filter-error" role="alert" hidden></p>
+            </div>
+            <footer class="filter-modal-footer"><button type="button" class="text-button" id="reset-filter-draft" data-filter-i18n="reset">Καθαρισμός</button><div><button type="button" class="secondary-button" id="cancel-filters" data-filter-i18n="cancel">Ακύρωση</button><button type="submit" class="primary-button" data-filter-i18n="apply">Εφαρμογή φίλτρων</button></div></footer>
+        </form>
+    </dialog>
     <dialog class="pdf-dialog" id="pdf-dialog" aria-labelledby="pdf-title">
         <header class="pdf-toolbar"><div class="pdf-heading"><p data-i18n="preview">Προεπισκόπηση PDF</p><h2 id="pdf-title"></h2></div><button type="button" class="icon-button" id="pdf-close" aria-label="Κλείσιμο προεπισκόπησης" autofocus>×</button></header>
         <div class="pdf-actions"><a class="secondary-button" id="pdf-download" data-i18n="download">Λήψη PDF</a><a class="text-button" id="pdf-new-tab" target="_blank" rel="noopener noreferrer" data-i18n="newTab">Άνοιγμα σε νέα καρτέλα</a><button type="button" class="text-button" id="pdf-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button></div>

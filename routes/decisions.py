@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, jsonify, redirect, render_template, request, send_file
 
 from services.diavgeia import DiavgeiaError, diavgeia, document_url
@@ -15,7 +17,15 @@ def search_parameters():
         size = int(request.args.get("size", "20"))
     except ValueError as exc:
         raise ValueError("page and size must be integers.") from exc
+    try:
+        extra = json.loads(request.args.get("extra", "{}"))
+    except (ValueError, TypeError) as exc:
+        raise ValueError("Invalid special filters.") from exc
     return {
+        **{key: request.args.get(key, "") for key in
+           ("term", "ada", "protocol", "issue_from", "issue_to", "updated_from", "updated_to")},
+        "status": request.args.get("status", "published"),
+        "extra": extra,
         "org": request.args.get("org"),
         "page": page,
         "size": size,
@@ -55,6 +65,26 @@ def decisions():
 def filters():
     try:
         return jsonify(diavgeia.filters())
+    except DiavgeiaError as exc:
+        return jsonify(error=str(exc)), 503
+
+
+@decisions_bp.route("/api/special-filters")
+def special_filters():
+    try:
+        return jsonify(diavgeia.special_fields(request.args.get("type", "")))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    except DiavgeiaError as exc:
+        return jsonify(error=str(exc)), 503
+
+
+@decisions_bp.route("/api/filter-dictionary")
+def filter_dictionary():
+    try:
+        return jsonify(diavgeia.dictionary(request.args.get("name", "")))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
     except DiavgeiaError as exc:
         return jsonify(error=str(exc)), 503
 
