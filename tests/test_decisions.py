@@ -29,6 +29,11 @@ def api(requests_mock, monkeypatch):
     monkeypatch.setattr("routes.decisions.diavgeia", service)
     requests_mock.get(f"{DIAVGEIA_API_URL}/organizations.json",
                       json={"organizations": ORGANIZATIONS})
+    for row in ORGANIZATIONS:
+        requests_mock.get(f"{DIAVGEIA_API_URL}/organizations/{row['uid']}.json", json=row)
+        requests_mock.get(f"{DIAVGEIA_API_URL}/organizations/{row['uid']}/supervised.json",
+                          json={"organizations": [child for child in ORGANIZATIONS
+                                                  if child.get("supervisorId") == row["uid"]]})
     requests_mock.get(f"{DIAVGEIA_API_URL}/search.json", json=results())
     return requests_mock
 
@@ -69,6 +74,7 @@ def test_pagination_parameters_and_end(client, api):
     assert api.last_request.qs["org"] == ["6"]
     assert "type" not in api.last_request.qs
     assert api.last_request.timeout == DIAVGEIA_TIMEOUT
+    assert all(request.path != "/luminapi/opendata/organizations.json" for request in api.request_history)
 
 
 def test_empty_page_stops_pagination(client, api):
@@ -83,6 +89,16 @@ def test_supervised_includes_nested_organizations(client, api):
     data = client.get("/api/decisions?org=6&include_supervised=true").json
     assert set(api.last_request.qs["org"][0].split(";")) == {"6", "7", "8"}
     assert data["decisions"][0]["organizationLabel"] == "Grandchild"
+
+
+def test_supervised_ignores_inactive_and_handles_cycles(client, api):
+    api.get(f"{DIAVGEIA_API_URL}/organizations/7/supervised.json", json={"organizations": [
+        ORGANIZATIONS[0], ORGANIZATIONS[2],
+        {"uid": "9", "label": "Inactive", "status": "inactive"},
+    ]})
+    assert client.get("/api/decisions?org=6&include_supervised=true").status_code == 200
+    assert set(api.last_request.qs["org"][0].split(";")) == {"6", "7", "8"}
+    assert not any("organizations/9/" in request.path for request in api.request_history)
 
 
 @pytest.mark.parametrize("query", [
@@ -127,7 +143,7 @@ def test_cache_isolated_by_query(client, api):
         org = "10" if query == "org=10" else "6"
         api.get(f"{DIAVGEIA_API_URL}/search.json", json=results([decision(org=org)]))
         assert client.get("/api/decisions?" + query).status_code == 200
-    assert len(api.request_history) == 6  # one catalog plus five searches
+    assert len(api.request_history) == 10  # two organization lookups, three supervised lists and five searches
 
 
 def test_cache_refresh_and_stale_expiry(client, api, monkeypatch):
@@ -262,3 +278,21 @@ def test_special_strings_cannot_inject_query_terms(client, api):
     response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"receiverName": value})})
     assert response.status_code == 200
     assert ('receiverName:' + json.dumps(value)).lower() in api.last_request.qs["q"][0]
+
+
+def test_organization_categories_are_fetched_and_cached_separately(client, api):
+    categories = ["MINISTRY", "MUNICIPALITY", "REGION", "ADMINISTRATIVEREGION", "INDEPENDENTAUTHORITY"]
+    rows = [{"uid": str(index), "label": category, "category": category}
+            for index, category in enumerate(categories, start=1)]
+    api.get(f"{DIAVGEIA_API_URL}/organizations.json", json={"organizations": rows})
+    for category in categories:
+        response = client.get("/api/organizations", query_string={"category": category})
+        assert response.status_code == 200
+        assert [row["category"] for row in response.json["organizations"]] == [category]
+        assert api.last_request.qs["category"] == [category.lower()]
+        assert api.last_request.qs["status"] == ["active"]
+    for category in categories:
+        assert client.get("/api/organizations", query_string={"category": category}).status_code == 200
+    assert len(api.request_history) == 5
+    assert client.get("/api/organizations?category=unknown").status_code == 400
+    assert len(api.request_history) == 5

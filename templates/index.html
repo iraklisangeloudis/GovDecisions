@@ -39,14 +39,22 @@
     <button type="button" class="sidebar-backdrop" id="sidebar-backdrop" aria-label="Κλείσιμο μενού" hidden></button>
     <div class="app-layout" id="app-layout">
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-heading"><h2 data-i18n="ministries">Υπουργεία</h2><span data-i18n="chooseOne">Επίλεξε έναν φορέα</span></div>
-            <p class="sidebar-status is-loading" id="organizations-status" role="status" data-i18n="loadingMinistries">Φόρτωση υπουργείων…</p>
+            <label class="filter-field sidebar-category" for="organization-category"><span class="select-wrap"><select id="organization-category" aria-label="Κατηγορία φορέα">
+                    <option value="" disabled selected hidden data-i18n="chooseCategory">Επίλεξε κατηγορία φορέα</option>
+                    <option value="MINISTRY" data-i18n="ministries">Υπουργεία</option>
+                    <option value="MUNICIPALITY" data-i18n="municipalities">Δήμοι</option>
+                    <option value="REGION" data-i18n="regions">Περιφέρειες</option>
+                    <option value="ADMINISTRATIVEREGION" data-i18n="administrativeRegions">Αποκεντρωμένες διοικήσεις</option>
+                    <option value="INDEPENDENTAUTHORITY" data-i18n="independentAuthorities">Ανεξάρτητες αρχές</option>
+                </select></span></label>
+            <p class="sidebar-status" id="organizations-status" role="status" hidden></p>
             <button type="button" class="text-button sidebar-retry" id="organizations-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button>
             <nav id="organization-list" aria-label="Υπουργεία"></nav>
             <p class="sidebar-footnote" data-i18n="source">Πηγή δεδομένων: Διαύγεια</p>
         </aside>
 
         <main id="main-content" tabindex="-1">
+            <div class="filter-bar" id="filter-bar" hidden><button type="button" class="secondary-button" id="open-filters"><span data-i18n="filtersButton">Φίλτρα</span><span id="filter-count" class="filter-count" hidden></span></button><p id="search-period"></p></div>
             <section class="empty-state" id="welcome-state">
                 <p class="eyebrow" data-i18n="browse">ΠΕΡΙΗΓΗΣΗ ΣΤΙΣ ΑΠΟΦΑΣΕΙΣ</p>
                 <h1 data-i18n="welcomeTitle">Οι δημόσιες αποφάσεις,<br>σε ένα σημείο.</h1>
@@ -56,7 +64,6 @@
 
             <section class="decision-view" id="decision-view" aria-labelledby="selected-title" hidden>
                 <div class="view-heading"><div><p class="eyebrow" data-i18n="recentDecisions">ΠΡΟΣΦΑΤΕΣ ΑΠΟΦΑΣΕΙΣ</p><h1 id="selected-title"></h1></div></div>
-                <div class="filter-bar"><button type="button" class="secondary-button" id="open-filters"><span data-i18n="filtersButton">Φίλτρα</span><span id="filter-count" class="filter-count" hidden></span></button><p id="search-period"></p></div>
                 <div class="active-filters" id="active-filters" aria-label="Ενεργά φίλτρα"></div>
                 <p class="notice" id="stale-notice" role="status" data-i18n="stale" hidden>Η Διαύγεια δεν είναι διαθέσιμη. Εμφανίζονται προηγούμενα αποτελέσματα.</p>
                 <p class="results-summary" id="results-summary" aria-live="polite"></p>

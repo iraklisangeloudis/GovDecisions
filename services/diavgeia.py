@@ -71,34 +71,56 @@ class DiavgeiaClient:
             raise DiavgeiaError("Diavgeia returned an invalid response.")
         return data
 
-    def organizations(self):
-        def fetch():
-            rows = self._get("organizations.json", {"status": "active"}).get("organizations")
-            if not isinstance(rows, list):
-                raise DiavgeiaError("Diavgeia returned an invalid organization list.")
-            organizations = []
-            for row in rows:
-                if not isinstance(row, dict) or not row.get("uid") or not row.get("label"):
-                    continue
-                organizations.append({
-                    "uid": str(row["uid"]), "label": row["label"],
-                    "category": row.get("category"),
-                    "supervisorId": str(row["supervisorId"]) if row.get("supervisorId") else None,
-                })
-            if rows and not organizations:
-                raise DiavgeiaError("Diavgeia returned an invalid organization list.")
-            return organizations
-        return self._cached(("organizations",), ORGANIZATIONS_CACHE_SECONDS, fetch)
+    @staticmethod
+    def _organization_rows(rows):
+        if not isinstance(rows, list):
+            raise DiavgeiaError("Diavgeia returned an invalid organization list.")
+        organizations = []
+        for row in rows:
+            if not isinstance(row, dict) or not row.get("uid") or not row.get("label"):
+                continue
+            if row.get("status", "active") != "active":
+                continue
+            organizations.append({
+                "uid": str(row["uid"]), "label": row["label"],
+                "category": row.get("category"),
+                "supervisorId": str(row["supervisorId"]) if row.get("supervisorId") else None,
+            })
+        return organizations
 
-    def ministries(self):
-        organizations, stale = self.organizations()
-        return {
-            "organizations": sorted(
-                [org for org in organizations if org["category"] == "MINISTRY"],
-                key=lambda org: org["label"],
+    def organizations_by_category(self, category="MINISTRY"):
+        if category not in {"MINISTRY", "MUNICIPALITY", "REGION", "ADMINISTRATIVEREGION", "INDEPENDENTAUTHORITY"}:
+            raise ValueError("Invalid organization category.")
+
+        def fetch():
+            data = self._get("organizations.json", {"status": "active", "category": category})
+            return sorted(
+                [row for row in self._organization_rows(data.get("organizations"))
+                 if row["category"] == category], key=lambda row: row["label"],
+            )
+
+        organizations, stale = self._cached(
+            ("organizations", category), ORGANIZATIONS_CACHE_SECONDS, fetch,
+        )
+        return {"organizations": organizations, "stale": stale}
+
+    def organization(self, org):
+        def fetch():
+            row = self._get(f"organizations/{org}.json")
+            if str(row.get("uid")) != org or not row.get("label"):
+                raise DiavgeiaError("Diavgeia returned an invalid organization.")
+            if row.get("status", "active") != "active":
+                raise ValueError("Unknown active organization.")
+            return self._organization_rows([row])[0]
+        return self._cached(("organization", org), ORGANIZATIONS_CACHE_SECONDS, fetch)
+
+    def supervised_organizations(self, org):
+        return self._cached(
+            ("supervised", org), ORGANIZATIONS_CACHE_SECONDS,
+            lambda: self._organization_rows(
+                self._get(f"organizations/{org}/supervised.json", {"status": "active"}).get("organizations")
             ),
-            "stale": stale,
-        }
+        )
 
     def filters(self):
         def options(path, key, decision_types=False):
@@ -178,21 +200,19 @@ class DiavgeiaClient:
         search_filters = validate_filters(search_filters)
         if search_filters["extra"] and not decision_type:
             raise ValueError("A decision type is required for special filters.")
-        organizations, catalog_stale = self.organizations()
-        labels = {row["uid"]: row["label"] for row in organizations}
-        if org not in labels:
-            raise ValueError("Unknown active organization.")
+        organization, catalog_stale = self.organization(org)
+        labels = {org: organization["label"]}
         ids = {org}
         if include_supervised:
-            children = {}
-            for row in organizations:
-                children.setdefault(row["supervisorId"], []).append(row["uid"])
             pending = [org]
             while pending:
-                for child in children.get(pending.pop(), []):
-                    if child not in ids:
-                        ids.add(child)
-                        pending.append(child)
+                children, stale = self.supervised_organizations(pending.pop())
+                catalog_stale = catalog_stale or stale
+                for child in children:
+                    if child["uid"] not in ids:
+                        ids.add(child["uid"])
+                        labels[child["uid"]] = child["label"]
+                        pending.append(child["uid"])
 
         def fetch():
             params = {

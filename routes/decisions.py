@@ -43,7 +43,9 @@ def index():
 @decisions_bp.route("/api/organizations")
 def organizations():
     try:
-        return jsonify(diavgeia.ministries())
+        return jsonify(diavgeia.organizations_by_category(request.args.get("category", "MINISTRY")))
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
     except DiavgeiaError as exc:
         return jsonify(error=str(exc)), 503
 

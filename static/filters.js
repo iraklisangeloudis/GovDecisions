@@ -173,6 +173,6 @@
     dialog.addEventListener('close',()=>{specialSequence++;document.body.classList.remove('filters-open');$('open-filters').focus({preventScroll:true});});
     window.searchFilters={parameters,renderSummary,updateLanguage,
         statusLabel(value){return value==='REVOKED'?t('revoked'):value==='PENDING_REVOCATION'?t('pending'):'';},
-        open(id){if(!id)return;updateLanguage();fill(applied);$('filter-organization').textContent=$('selected-title').textContent;dialog.showModal();document.body.classList.add('filters-open');loadOptions().then(()=>{if(dialog.open){field('type').value=applied.type;field('tag').value=applied.tag;loadSpecial();}});}
+        open(id){updateLanguage();fill(applied);$('filter-organization').textContent=id ? $('selected-title').textContent : ''; dialog.showModal();document.body.classList.add('filters-open');loadOptions().then(()=>{if(dialog.open){field('type').value=applied.type;field('tag').value=applied.tag;loadSpecial();}});}
     };
 })();

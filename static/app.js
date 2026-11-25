@@ -6,7 +6,7 @@
         el: {
             filtersButton: 'Φίλτρα',
             brand: 'Δημόσιες αποφάσεις', tagline: 'Αναρτήσεις από τη Διαύγεια', skip: 'Στο περιεχόμενο',
-            ministries: 'Υπουργεία', chooseOne: 'Επίλεξε έναν φορέα', loadingMinistries: 'Φόρτωση υπουργείων…',
+            chooseCategory: 'Επίλεξε κατηγορία φορέα', category: 'Κατηγορία φορέα', municipalities: 'Δήμοι', regions: 'Περιφέρειες', administrativeRegions: 'Αποκεντρωμένες διοικήσεις', independentAuthorities: 'Ανεξάρτητες αρχές', ministries: 'Υπουργεία', chooseOne: 'Επίλεξε έναν φορέα', loadingMinistries: 'Φόρτωση φορέων…',
             retry: 'Δοκιμή ξανά', source: 'Πηγή δεδομένων: Διαύγεια', browse: 'ΠΕΡΙΗΓΗΣΗ ΣΤΙΣ ΑΠΟΦΑΣΕΙΣ',
             welcomeTitle: 'Οι δημόσιες αποφάσεις, σε ένα σημείο.', welcomeText: 'Επίλεξε έναν φορέα για να δεις τις αποφάσεις του.',
             chooseMinistry: 'Επιλογή φορέα',
@@ -17,7 +17,7 @@
             error: 'Δεν ήταν δυνατή η φόρτωση. Δοκίμασε ξανά.', end: 'Έφτασες στο τέλος των αποτελεσμάτων.',
             more: 'Περισσότερες αποφάσεις', issued: 'Έκδοση', updated: 'Ενημέρωση', ada: 'ΑΔΑ', pdf: 'Άνοιγμα PDF ↗',
             shown: (n, total) => `${n} από ${total} αποφάσεις`, openMenu: 'Άνοιγμα μενού φορέων', closeMenu: 'Κλείσιμο μενού φορέων',
-            lightTheme: 'Ανοιχτό θέμα', darkTheme: 'Σκούρο θέμα', noMinistries: 'Δεν βρέθηκαν διαθέσιμα υπουργεία.',
+            lightTheme: 'Ανοιχτό θέμα', darkTheme: 'Σκούρο θέμα', noMinistries: 'Δεν βρέθηκαν διαθέσιμοι φορείς.',
             catalogStale: 'Εμφανίζεται προηγούμενος κατάλογος φορέων.',
             preview: 'Προεπισκόπηση PDF', download: 'Λήψη PDF', newTab: 'Άνοιγμα σε νέα καρτέλα', closePreview: 'Κλείσιμο προεπισκόπησης',
             pdfLoading: 'Φόρτωση PDF…', pdfError: 'Δεν ήταν δυνατή η προεπισκόπηση. Δοκίμασε ξανά ή κατέβασε το PDF.',
@@ -27,7 +27,7 @@
         en: {
             filtersButton: 'Filters',
             brand: 'Public decisions', tagline: 'Publications from Diavgeia', skip: 'Skip to content',
-            ministries: 'Ministries', chooseOne: 'Select an organization', loadingMinistries: 'Loading ministries…',
+            chooseCategory: 'Select an organization category', category: 'Organization category', municipalities: 'Municipalities', regions: 'Regions', administrativeRegions: 'Decentralized administrations', independentAuthorities: 'Independent authorities', ministries: 'Ministries', chooseOne: 'Select an organization', loadingMinistries: 'Loading organizations…',
             retry: 'Try again', source: 'Data source: Diavgeia', browse: 'BROWSE PUBLIC DECISIONS',
             welcomeTitle: 'Public decisions, in one place.', welcomeText: 'Select an organization to browse its decisions.',
             chooseMinistry: 'Choose an organization',
@@ -38,7 +38,7 @@
             error: 'Unable to load results. Please try again.', end: 'You have reached the end of the results.',
             more: 'More decisions', issued: 'Issued', updated: 'Updated', ada: 'ADA', pdf: 'Open PDF ↗',
             shown: (n, total) => `${n} of ${total} decisions`, openMenu: 'Open organization menu', closeMenu: 'Close organization menu',
-            lightTheme: 'Light theme', darkTheme: 'Dark theme', noMinistries: 'No ministries available.',
+            lightTheme: 'Light theme', darkTheme: 'Dark theme', noMinistries: 'No organizations available.',
             catalogStale: 'Showing a previously fetched organization list.',
             preview: 'PDF preview', download: 'Download PDF', newTab: 'Open in new tab', closePreview: 'Close preview',
             pdfLoading: 'Loading PDF…', pdfError: 'Unable to preview this PDF. Try again or download it.',
@@ -50,7 +50,9 @@
     const persist = (key, value) => { try { localStorage.setItem(key, value); } catch (_) {} };
     let language = stored('decisions-language') === 'en' ? 'en' : 'el';
     let organizations = [];
-    let catalogState = 'loading';
+    let category = '';
+    let catalogController = null;
+    let catalogState = 'idle';
     let selected = null;
     let controller = null;
     let pendingState = null;
@@ -58,6 +60,8 @@
     const mobile = matchMedia('(max-width: 760px)');
     let sidebarOpen = !mobile.matches;
     const t = (key) => copy[language][key];
+    const categoryLabel = () => t({MINISTRY:'ministries', MUNICIPALITY:'municipalities', REGION:'regions',
+        ADMINISTRATIVEREGION:'administrativeRegions', INDEPENDENTAUTHORITY:'independentAuthorities'}[category]) || t('category');
     const viewKey = () => JSON.stringify([selected, window.searchFilters.parameters()]);
     const current = () => selected ? views.get(viewKey()) : null;
     const number = (value) => new Intl.NumberFormat(language === 'el' ? 'el-GR' : 'en-GB').format(value);
@@ -75,7 +79,7 @@
         $('main-content').inert = mobile.matches && open;
         $('menu-toggle').setAttribute('aria-expanded', String(open));
         $('menu-toggle').setAttribute('aria-label', t(open ? 'closeMenu' : 'openMenu'));
-        if (focusFirst && open) $('organization-list').querySelector('button')?.focus();
+        if (focusFirst && open) $('organization-category').focus();
     }
 
     function updateChrome() {
@@ -85,7 +89,8 @@
         $('lang-el').classList.toggle('current-language', language === 'el');
         $('lang-en').classList.toggle('current-language', language === 'en');
         $('language-toggle').setAttribute('aria-label', language === 'el' ? 'Switch to English' : 'Αλλαγή σε Ελληνικά');
-        $('organization-list').setAttribute('aria-label', t('ministries'));
+        $('organization-category').setAttribute('aria-label', t('category'));
+        $('organization-list').setAttribute('aria-label', categoryLabel());
         $('sidebar-backdrop').setAttribute('aria-label', t('closeMenu'));
         document.querySelector('.brand').setAttribute('aria-label', t('brand'));
         const dark = document.documentElement.dataset.theme === 'dark';
@@ -98,6 +103,7 @@
     }
 
     function renderCatalogStatus() {
+        $('organization-list').setAttribute('aria-label', categoryLabel());
         const message = { loading: 'loadingMinistries', error: 'error', empty: 'noMinistries', stale: 'catalogStale' }[catalogState];
         $('organizations-status').hidden = !message;
         $('organizations-status').classList.toggle('is-loading', catalogState === 'loading');
@@ -106,12 +112,18 @@
     }
 
     async function loadOrganizations() {
+        catalogController?.abort();
+        catalogController = null;
+        if (!category) { catalogState = 'idle'; renderCatalogStatus(); return; }
+        const pending = new AbortController();
+        catalogController = pending;
         catalogState = 'loading';
         renderCatalogStatus();
         try {
-            const response = await fetch('/api/organizations');
+            const response = await fetch(`/api/organizations?category=${encodeURIComponent(category)}`, {signal: pending.signal});
             if (!response.ok) throw new Error('upstream');
             const data = await response.json();
+            if (catalogController !== pending) return;
             if (!Array.isArray(data.organizations)) throw new Error('invalid response');
             organizations = data.organizations;
             $('organization-list').replaceChildren();
@@ -126,7 +138,11 @@
                 $('organization-list').append(button);
             });
             catalogState = !organizations.length ? 'empty' : data.stale ? 'stale' : 'ready';
-        } catch (_) { catalogState = 'error'; }
+        } catch (error) {
+            if (catalogController !== pending || error.name === 'AbortError') return;
+            catalogState = 'error';
+        }
+        if (catalogController === pending) catalogController = null;
         renderCatalogStatus();
     }
 
@@ -199,7 +215,9 @@
         document.querySelectorAll('.organization-button').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.org === selected)));
         $('welcome-state').hidden = !!selected;
         $('decision-view').hidden = !selected;
-        if (!state) { $('decision-list').replaceChildren(); return; }
+        window.searchFilters.renderSummary();
+        $('filter-bar').hidden = !selected;
+        if (!state) { $('selected-title').textContent = ''; $('decision-list').replaceChildren(); return; }
         $('selected-title').textContent = organizations.find((org) => org.uid === selected)?.label || '';
         window.searchFilters.renderSummary();
         $('decision-list').replaceChildren(...state.rows.map(renderCard));
@@ -259,6 +277,22 @@
     $('organizations-retry').addEventListener('click', loadOrganizations);
     $('load-more').addEventListener('click', loadMore);
     $('open-filters').addEventListener('click', () => window.searchFilters.open(selected));
+    $('organization-category').addEventListener('change', () => {
+        const nextCategory = $('organization-category').value;
+        if (nextCategory !== category) {
+            abortPending();
+            category = nextCategory;
+            selected = null;
+            organizations = [];
+            views.clear();
+            $('organization-list').replaceChildren();
+            render();
+            setSidebar(true);
+            window.scrollTo({top: 0, behavior: 'instant'});
+            loadOrganizations();
+            return;
+        }
+    });
     document.addEventListener('filters-applied', () => {
         if (!selected) return;
         const id = selected;
