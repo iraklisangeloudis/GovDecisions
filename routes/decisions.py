@@ -12,6 +12,9 @@ def search_parameters():
     supervised = request.args.get("include_supervised", "false").lower()
     if supervised not in {"true", "false"}:
         raise ValueError("include_supervised must be true or false.")
+    refresh = request.args.get("refresh", "false").lower()
+    if refresh not in {"true", "false"}:
+        raise ValueError("refresh must be true or false.")
     try:
         page = int(request.args.get("page", "0"))
         size = int(request.args.get("size", "20"))
@@ -27,6 +30,7 @@ def search_parameters():
         "status": request.args.get("status", "published"),
         "extra": extra,
         "org": request.args.get("org"),
+        "refresh": refresh == "true",
         "page": page,
         "size": size,
         "include_supervised": supervised == "true",

@@ -4,7 +4,7 @@
     const $ = (id) => document.getElementById(id);
     const copy = {
         el: {
-            filtersButton: 'Φίλτρα',
+            refresh: 'Ανανέωση', refreshing: 'Ανανέωση…', refreshError: 'Η ανανέωση απέτυχε. Διατηρήθηκαν τα προηγούμενα αποτελέσματα.', filtersButton: 'Φίλτρα',
             brand: 'Δημόσιες αποφάσεις', tagline: 'Αναρτήσεις από τη Διαύγεια', skip: 'Στο περιεχόμενο',
             chooseCategory: 'Επίλεξε κατηγορία φορέα', category: 'Κατηγορία φορέα', municipalities: 'Δήμοι', regions: 'Περιφέρειες', administrativeRegions: 'Αποκεντρωμένες διοικήσεις', independentAuthorities: 'Ανεξάρτητες αρχές', ministries: 'Υπουργεία', chooseOne: 'Επίλεξε έναν φορέα', loadingMinistries: 'Φόρτωση φορέων…',
             retry: 'Δοκιμή ξανά', source: 'Πηγή δεδομένων: Διαύγεια', browse: 'ΠΕΡΙΗΓΗΣΗ ΣΤΙΣ ΑΠΟΦΑΣΕΙΣ',
@@ -25,7 +25,7 @@
             pdfHelp: 'Αν δεν εμφανίζεται η προεπισκόπηση, άνοιξε το PDF σε νέα καρτέλα ή κατέβασέ το.',
         },
         en: {
-            filtersButton: 'Filters',
+            refresh: 'Refresh', refreshing: 'Refreshing…', refreshError: 'Refresh failed. Previous results have been kept.', filtersButton: 'Filters',
             brand: 'Public decisions', tagline: 'Publications from Diavgeia', skip: 'Skip to content',
             chooseCategory: 'Select an organization category', category: 'Organization category', municipalities: 'Municipalities', regions: 'Regions', administrativeRegions: 'Decentralized administrations', independentAuthorities: 'Independent authorities', ministries: 'Ministries', chooseOne: 'Select an organization', loadingMinistries: 'Loading organizations…',
             retry: 'Try again', source: 'Data source: Diavgeia', browse: 'BROWSE PUBLIC DECISIONS',
@@ -217,6 +217,8 @@
         $('decision-view').hidden = !selected;
         window.searchFilters.renderSummary();
         $('filter-bar').hidden = !selected;
+        $('refresh-decisions').disabled = !state || state.loading;
+        $('refresh-decisions').textContent = t(state?.refreshing ? 'refreshing' : 'refresh');
         if (!state) { $('selected-title').textContent = ''; $('decision-list').replaceChildren(); return; }
         $('selected-title').textContent = organizations.find((org) => org.uid === selected)?.label || '';
         window.searchFilters.renderSummary();
@@ -226,7 +228,7 @@
         $('results-summary').textContent = state.loaded ? t('shown')(number(state.rows.length), number(state.total)) : '';
         let message = '';
         if (state.loading) message = t('loading');
-        else if (state.error) message = t('error');
+        else if (state.error) message = t(state.refreshError ? 'refreshError' : 'error');
         else if (state.loaded && !state.rows.length) message = t('empty');
         else if (state.loaded && !state.more) message = t('end');
         $('list-status').textContent = message;
@@ -236,22 +238,32 @@
         if (state.loaded && state.more && !state.loading && !state.error) observer?.observe($('scroll-sentinel'));
     }
 
-    async function loadMore() {
+    async function loadMore(refresh = false) {
         const state = current();
-        if (!state || state.loading || !state.more) return;
+        if (!state || state.loading || (!refresh && !state.more)) return;
         const requestController = new AbortController();
         controller = requestController;
         pendingState = state;
         state.loading = true;
+        state.refreshing = refresh;
+        state.refreshError = false;
         state.error = false;
         render();
-        const query = new URLSearchParams({ org: selected, page: state.nextPage, size: 20, ...window.searchFilters.parameters() });
+        const query = new URLSearchParams({ org: selected, page: refresh ? 0 : state.nextPage, size: 20, ...window.searchFilters.parameters() });
+        if (refresh) query.set('refresh', 'true');
         try {
             const response = await fetch(`/api/decisions?${query}`, { signal: requestController.signal });
             if (!response.ok) throw new Error('upstream');
             const data = await response.json();
             if (controller !== requestController) return;
             if (!Array.isArray(data.decisions) || typeof data.hasMore !== 'boolean') throw new Error('invalid response');
+            if (refresh) {
+                state.rows = [];
+                state.nextPage = 0;
+                state.stale = false;
+                state.scroll = 0;
+                window.scrollTo({top: 0, behavior: 'instant'});
+            }
             const seen = new Set(state.rows.map((row) => row.ada));
             data.decisions.forEach((row) => { if (!seen.has(row.ada)) { seen.add(row.ada); state.rows.push(row); } });
             state.total = data.total;
@@ -260,12 +272,13 @@
             state.loaded = true;
             state.stale = state.stale || data.stale;
         } catch (error) {
-            if (error.name !== 'AbortError' && controller === requestController) state.error = true;
+            if (error.name !== 'AbortError' && controller === requestController) { state.error = true; state.refreshError = refresh; }
         } finally {
             if (controller === requestController) {
                 controller = null;
                 pendingState = null;
                 state.loading = false;
+                state.refreshing = false;
                 render();
             }
         }
@@ -275,7 +288,8 @@
     $('choose-ministry').addEventListener('click', () => setSidebar(true, true));
     $('sidebar-backdrop').addEventListener('click', () => { setSidebar(false); $('menu-toggle').focus(); });
     $('organizations-retry').addEventListener('click', loadOrganizations);
-    $('load-more').addEventListener('click', loadMore);
+    $('load-more').addEventListener('click', () => loadMore(current()?.refreshError || false));
+    $('refresh-decisions').addEventListener('click', () => loadMore(true));
     $('open-filters').addEventListener('click', () => window.searchFilters.open(selected));
     $('organization-category').addEventListener('change', () => {
         const nextCategory = $('organization-category').value;

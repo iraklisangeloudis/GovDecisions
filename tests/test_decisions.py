@@ -296,3 +296,29 @@ def test_organization_categories_are_fetched_and_cached_separately(client, api):
     assert len(api.request_history) == 5
     assert client.get("/api/organizations?category=unknown").status_code == 400
     assert len(api.request_history) == 5
+
+
+def test_refresh_bypasses_cache_and_invalidates_older_pages(client, api):
+    client.get("/api/decisions?org=6")
+    client.get("/api/decisions?org=6&page=1")
+    api.get(f"{DIAVGEIA_API_URL}/search.json", json=results([decision("NEW-1")]))
+    response = client.get("/api/decisions?org=6&refresh=true")
+    assert response.json["decisions"][0]["ada"] == "NEW-1"
+    count = len(api.request_history)
+    assert client.get("/api/decisions?org=6").json["decisions"][0]["ada"] == "NEW-1"
+    assert len(api.request_history) == count
+    client.get("/api/decisions?org=6&page=1")
+    assert len(api.request_history) == count + 1
+
+
+def test_failed_refresh_preserves_cached_results(client, api):
+    client.get("/api/decisions?org=6")
+    api.get(f"{DIAVGEIA_API_URL}/search.json", exc=requests.Timeout)
+    assert client.get("/api/decisions?org=6&refresh=true").status_code == 503
+    assert client.get("/api/decisions?org=6").json["decisions"][0]["ada"] == "TEST-1"
+
+
+def test_invalid_refresh_is_rejected_before_network(client, api):
+    assert client.get("/api/decisions?org=6&refresh=yes").status_code == 400
+    assert client.get("/api/decisions?org=6&page=1&refresh=true").status_code == 400
+    assert not api.called

@@ -34,18 +34,18 @@ class DiavgeiaClient:
         self._cache = OrderedDict()
         self._lock = Lock()
 
-    def _cached(self, key, ttl, fetch):
+    def _cached(self, key, ttl, fetch, force_refresh=False):
         now = monotonic()
         with self._lock:
             entry = self._cache.get(key)
-            if entry and now - entry[0] < ttl:
+            if not force_refresh and entry and now - entry[0] < ttl:
                 self._cache.move_to_end(key)
                 return deepcopy(entry[1]), False
         try:
             value = fetch()
         except DiavgeiaError:
             # Stale data is usable for one additional TTL, never indefinitely.
-            if entry and now - entry[0] < ttl * 2:
+            if not force_refresh and entry and now - entry[0] < ttl * 2:
                 logger.warning("Serving stale Diavgeia cache for %s", key)
                 return deepcopy(entry[1]), True
             raise
@@ -184,7 +184,7 @@ class DiavgeiaClient:
         items, stale = self._cached(("dictionary", name), ORGANIZATIONS_CACHE_SECONDS, fetch)
         return {"items": items, "stale": stale}
 
-    def decisions(self, org, page=0, size=20, include_supervised=False,
+    def decisions(self, org, page=0, size=20, include_supervised=False, refresh=False,
                   decision_type="", thematic_category="", **search_filters):
         if not isinstance(org, str) or not re.fullmatch(r"[0-9]{1,20}", org):
             raise ValueError("org must be a numeric organization ID.")
@@ -192,6 +192,8 @@ class DiavgeiaClient:
             raise ValueError("page must be between 0 and 10000.")
         if type(size) is not int or not 1 <= size <= 100:
             raise ValueError("size must be between 1 and 100.")
+        if type(refresh) is not bool or (refresh and page != 0):
+            raise ValueError("Refresh is only supported for the first page.")
         if type(include_supervised) is not bool:
             raise ValueError("include_supervised must be true or false.")
         for name, value in (("type", decision_type), ("tag", thematic_category)):
@@ -262,6 +264,14 @@ class DiavgeiaClient:
                 })
             if rows and not decisions:
                 raise DiavgeiaError("Diavgeia returned unusable search results.")
+            if refresh:
+                # Older pages can shift when new decisions arrive.
+                with self._lock:
+                    for key in list(self._cache):
+                        if (key[0] == "decisions" and key[1] == tuple(sorted(ids))
+                                and key[4:] == (decision_type, thematic_category,
+                                    json.dumps(search_filters, sort_keys=True, ensure_ascii=False))):
+                            del self._cache[key]
             return {
                 "decisions": decisions, "page": page, "size": size, "total": total,
                 "hasMore": bool(rows) and (page + 1) * size < total,
@@ -269,7 +279,7 @@ class DiavgeiaClient:
         result, stale = self._cached(
             ("decisions", tuple(sorted(ids)), page, size, decision_type, thematic_category,
              json.dumps(search_filters, sort_keys=True, ensure_ascii=False)),
-            DECISIONS_CACHE_SECONDS, fetch,
+            DECISIONS_CACHE_SECONDS, fetch, force_refresh=refresh,
         )
         result["stale"] = stale or catalog_stale
         return result
