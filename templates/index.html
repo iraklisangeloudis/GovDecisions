@@ -77,9 +77,9 @@
                     <label class="filter-field"><span data-filter-i18n="type">Είδος πράξης</span><span class="select-wrap"><select name="type" id="modal-type"><option value=""></option></select></span></label>
                     <label class="filter-field"><span data-filter-i18n="theme">Θεματική ενότητα</span><span class="select-wrap"><select name="tag" id="modal-theme"><option value=""></option></select></span></label>
                 </div><p id="filter-options-status" role="status"></p><button type="button" class="text-button" id="retry-filter-options" data-filter-i18n="retry" hidden>Δοκιμή ξανά</button></fieldset>
-                <fieldset><legend data-filter-i18n="dates">Ημερομηνίες</legend><p class="field-help" data-filter-i18n="issueHelp">Μπορείς να αναζητήσεις έως 180 ημερολογιακές ημέρες ανά φορά.</p><div class="filter-grid">
-                    <label class="filter-field"><span data-filter-i18n="issueFrom">Έκδοση από</span><input name="issue_from" type="date" required></label>
-                    <label class="filter-field"><span data-filter-i18n="issueTo">Έκδοση έως</span><input name="issue_to" type="date" required></label>
+                <fieldset><legend data-filter-i18n="dates">Ημερομηνίες</legend><p class="field-help" data-filter-i18n="issueHelp">Προαιρετικό. Συμπλήρωσε και τις δύο ημερομηνίες για συγκεκριμένο διάστημα έως 180 ημερών. Αλλιώς ισχύει το προεπιλεγμένο διάστημα της Διαύγειας.</p><div class="filter-grid">
+                    <label class="filter-field"><span data-filter-i18n="issueFrom">Έκδοση από</span><input name="issue_from" type="date"></label>
+                    <label class="filter-field"><span data-filter-i18n="issueTo">Έκδοση έως</span><input name="issue_to" type="date"></label>
                 </div></fieldset>
                 <fieldset><label class="supervised-option"><input name="include_supervised" type="checkbox"><span data-filter-i18n="supervised">Συμπερίληψη εποπτευόμενων φορέων</span></label></fieldset>
                 <details id="more-filter-options"><summary data-filter-i18n="more">Περισσότερες επιλογές</summary>

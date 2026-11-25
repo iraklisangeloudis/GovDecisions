@@ -1,6 +1,6 @@
 """Validation and query construction for the public search controls."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date
 from decimal import Decimal, InvalidOperation
 import json
 import re
@@ -9,10 +9,6 @@ STATUSES = {"published": "Αναρτημένη", "revoked": "Ανακληθεί�
             "pending_revocation": "Εν αναμονή ανάκλησης", "all": None}
 TEXT_FIELDS = ("term", "ada", "protocol")
 DATE_FIELDS = ("issue_from", "issue_to", "updated_from", "updated_to")
-
-
-def today():
-    return datetime.now(timezone.utc).date()
 
 
 def validate_filters(values):
@@ -76,9 +72,9 @@ def advanced_query(params, filters, extra_fields):
             parts.append(f"{field}:{quote(params[name])}")
     if STATUSES[filters["status"]]:
         parts.append("status:" + quote(STATUSES[filters["status"]]))
-    end = filters.get("issue_to", today().isoformat())
-    start = filters.get("issue_from", (today() - timedelta(days=179)).isoformat())
-    parts.append(f"issueDate:[DT({start}T00:00:00) TO DT({end}T23:59:59)]")
+    if filters.get("issue_from"):
+        start, end = filters["issue_from"], filters["issue_to"]
+        parts.append(f"issueDate:[DT({start}T00:00:00) TO DT({end}T23:59:59)]")
     if filters.get("updated_from"):
         parts.append(f"submissionTimestamp:[DT({filters['updated_from']}T00:00:00) TO DT({filters['updated_to']}T23:59:59)]")
     allowed = {field["term"]: field for field in extra_fields}

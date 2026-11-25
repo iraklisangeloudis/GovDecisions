@@ -248,6 +248,7 @@ def test_special_amounts_are_validated_and_added_to_query(client, api):
     response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"amount": {"min": "100", "max": "5000"}})})
     assert response.status_code == 200
     assert "amount:[100 to 5000]" in api.last_request.qs["q"][0]
+    assert "issuedate:" not in api.last_request.qs["q"][0]
     response = client.get("/api/decisions", query_string={"org": "6", "type": "A.1", "extra": json.dumps({"unrecognizedField": "value"})})
     assert response.status_code == 400
 
