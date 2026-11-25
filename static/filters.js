@@ -22,6 +22,12 @@
     const specialCache = new Map();
     const dictionaries = new Map();
     const clone = (value) => JSON.parse(JSON.stringify(value));
+    function filterSignature(value) {
+        const ordered = (item) => item && typeof item === 'object'
+            ? Object.fromEntries(Object.keys(item).sort().map(key => [key, ordered(item[key])]))
+            : item;
+        return JSON.stringify(ordered(value));
+    }
     function parameters() {
         const params = {};
         for (const [key,value] of Object.entries(applied)) {
@@ -153,7 +159,12 @@
             const pattern=/^-?\d{1,16}(?:\.\d{1,6})?$/;
             if((value.min&&!pattern.test(value.min))||(value.max&&!pattern.test(value.max))||(value.min&&value.max&&Number(value.min)>Number(value.max))){showError(t('numberError'));return;}
         }
-        next.extra=clone(draftExtra);applied=next;dialog.close();notify();
+        next.extra=clone(draftExtra);
+        if (filterSignature(next) === filterSignature(applied)) {
+            dialog.close();
+            return;
+        }
+        applied=next;dialog.close();notify();
     });
     $('modal-type').addEventListener('change',()=>{draftExtra={};loadSpecial();});
     $('reset-filter-draft').addEventListener('click',()=>{fill(defaults());loadSpecial();});
