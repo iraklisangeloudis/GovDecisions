@@ -67,7 +67,7 @@ Changing an AMI/subnet can replace an EC2 instance. Changing `ssh_cidr` changes
 SSH access. Docker/Caddy files, certificates and the DuckDNS token live on the
 current server's disk; this configuration alone does not rebuild those services.
 
-## Manual deployment from GitHub Actions
+## Deployment from GitHub Actions
 
 `deployment.tf` adds a GitHub OIDC provider, a deployment role restricted to
 this repository's `main` branch and this EC2, plus an instance role/profile for
@@ -91,13 +91,15 @@ sudo systemctl status amazon-ssm-agent --no-pager
 sudo systemctl enable --now amazon-ssm-agent
 ```
 
-After the AWS setup is applied and the workflow is committed/pushed:
-GitHub -> Actions -> Deploy to AWS -> Run workflow -> main.
+Every push to main runs the reusable Docker CI workflow once and deploys that
+commit only if its build/tests pass. Pull requests run CI without deployment.
+Manual deployment remains available via GitHub -> Actions -> Deploy to AWS ->
+Run workflow -> main.
 The EC2 must already be running; the workflow will not start it automatically.
 The current repository must remain publicly cloneable by the EC2. A private
 repository requires a separate read authentication setup.
 
-The workflow tests the selected main-branch commit, authenticates with OIDC,
+The workflow builds/tests the pushed or manually selected main-branch commit, authenticates with OIDC,
 then runs `scripts/deploy-ec2.sh` through SSM and checks the command's result.
 The remote script builds that exact commit before stopping the app, keeps the
 previous container, and restores it if startup or its HTTP check fails. There
