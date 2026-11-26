@@ -11,6 +11,7 @@ key.json
 # Terraform
 *.tfstate
 *.tfstate.backup
+*.tfplan
 .terraform.lock.hcl
 .terraform/
 terraform.tfvars

@@ -1,0 +1,4 @@
+ami_id    = "ami-EXISTING_AMI"
+subnet_id = "subnet-EXISTING_SUBNET"
+vpc_id    = "vpc-EXISTING_VPC"
+ssh_cidr  = "YOUR_PUBLIC_IPV4/32"
