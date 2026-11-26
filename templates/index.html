@@ -110,6 +110,13 @@
     <dialog class="pdf-dialog" id="pdf-dialog" aria-labelledby="pdf-title">
         <header class="pdf-toolbar"><div class="pdf-heading"><p data-i18n="preview">Προεπισκόπηση PDF</p><h2 id="pdf-title"></h2></div><button type="button" class="icon-button" id="pdf-close" aria-label="Κλείσιμο προεπισκόπησης" autofocus>×</button></header>
         <div class="pdf-actions"><a class="secondary-button" id="pdf-download" data-i18n="download">Λήψη PDF</a><a class="text-button" id="pdf-new-tab" target="_blank" rel="noopener noreferrer" data-i18n="newTab">Άνοιγμα σε νέα καρτέλα</a><button type="button" class="text-button" id="pdf-retry" data-i18n="retry" hidden>Δοκιμή ξανά</button></div>
+        <div class="pdf-controls" id="pdf-controls" hidden>
+            <button type="button" class="icon-button" id="pdf-previous">‹</button>
+            <span id="pdf-page-number" aria-live="polite"></span>
+            <button type="button" class="icon-button" id="pdf-next">›</button>
+            <button type="button" class="icon-button" id="pdf-zoom-out">−</button>
+            <button type="button" class="icon-button" id="pdf-zoom-in">+</button>
+        </div>
         <p class="pdf-status" id="pdf-status" role="status"></p>
         <div class="pdf-stage" id="pdf-stage"></div>
         <p class="pdf-help" data-i18n="pdfHelp">Αν δεν εμφανίζεται η προεπισκόπηση, άνοιξε το PDF σε νέα καρτέλα ή κατέβασέ το.</p>
