@@ -232,6 +232,7 @@
         else if (state.loaded && !state.rows.length) message = t('empty');
         else if (state.loaded && !state.more) message = t('end');
         $('list-status').textContent = message;
+        $('list-status').classList.toggle('is-loading', state.loading);
         $('list-status').classList.toggle('error', state.error);
         $('load-more').hidden = state.loading || (!state.error && !state.more);
         $('load-more').textContent = t(state.error ? 'retry' : 'more');

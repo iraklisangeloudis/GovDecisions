@@ -28,17 +28,13 @@ Open http://127.0.0.1:8080/. To stop:
 docker compose down
 ```
 
-To use the local source files inside the container:
+For development with local source files:
 
 ```powershell
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-Restart the container after code changes. To stop the development stack:
-
-```powershell
-docker compose -f docker-compose.dev.yml down
-```
+Restart after code changes. Stop with `docker compose -f docker-compose.dev.yml down`.
 
 ## Run tests
 
@@ -56,16 +52,13 @@ docker compose build tests
 docker compose run --rm tests
 ```
 
+## Deployment
+
+Push to `main` to run build/tests and deploy to AWS. The EC2 must be running.
+Manual deployment: GitHub Actions → Deploy to AWS → Run workflow.
+
+For infrastructure commands, see [Terraform instructions](terraform/aws/README.md).
+
 ## License
 
-This project is licensed under the MIT License.
-
-Law 3861/2010 "Strengthening transparency with the mandatory posting of laws
-and acts of governmental, administrative and self-governing bodies on the
-internet "Diavgeia Program" and other provisions".
-
-Ν. 3861/2010 «Ενίσχυση της διαφάνειας με την υποχρεωτική ανάρτηση νόμων
-και πράξεων των κυβερνητικών, διοικητικών και αυτοδιοικητικών οργάνων στο
-διαδίκτυο «Πρόγραμμα Διαύγεια» και άλλες διατάξεις», (Α΄ 112)
-
-
+[MIT](LICENSE)
