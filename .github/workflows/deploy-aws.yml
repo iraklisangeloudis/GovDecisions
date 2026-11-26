@@ -1,0 +1,44 @@
+name: Deploy to AWS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false
+
+jobs:
+  test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: |
+          docker compose build tests
+          docker compose run --rm tests
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: us-east-1
+      INSTANCE_ID: i-0b11885ca25eaa3c0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Connect to AWS with temporary credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::590184018197:role/gov-decisions-github-deploy
+          aws-region: us-east-1
+          role-session-name: github-deploy-${{ github.run_id }}
+      - name: Deploy the tested commit through Systems Manager
+        shell: bash
+        run: python scripts/deploy-ssm.py

@@ -1,9 +1,10 @@
 # Existing AWS deployment
 
 This directory manages the existing EC2 instance and its security group. It uses
-local state here, separate from the legacy GCP configuration/state in the parent
-folder. Always use `terraform -chdir=terraform/aws ...` from the repository root.
-Do not run the legacy GCP configuration as part of AWS deployment.
+local state here, separate from any legacy GCP state in the parent folder.
+The old GCP configuration and commented deployment job have been removed.
+Always use `terraform -chdir=terraform/aws ...` from the repository root.
+Existing GCP cloud resources have not been inspected or deleted.
 
 The VPC, subnet and SSH key pair remain external resources. The root disk is
 managed through the instance. Terraform does not configure Docker, Caddy,
@@ -65,3 +66,44 @@ values: keep them local too.
 Changing an AMI/subnet can replace an EC2 instance. Changing `ssh_cidr` changes
 SSH access. Docker/Caddy files, certificates and the DuckDNS token live on the
 current server's disk; this configuration alone does not rebuild those services.
+
+## Manual deployment from GitHub Actions
+
+`deployment.tf` adds a GitHub OIDC provider, a deployment role restricted to
+this repository's `main` branch and this EC2, plus an instance role/profile for
+Systems Manager. It attaches AmazonSSMManagedInstanceCore to the EC2 role.
+No SSH private key or permanent AWS credentials are stored in GitHub.
+
+These additions were applied on 2026-11-26: six IAM/OIDC resources were created
+and the existing EC2 instance profile was updated in place. The subsequent
+plan reported No changes. No security group ports changed.
+The workflow has not yet been committed/pushed or tested with a real deployment.
+
+The SSM agent was verified active/enabled and Online after a restart on 2026-11-26.
+It must remain running on the EC2 and appear Online in Systems
+Manager. If needed, check from the existing SSH connection:
+
+```bash
+sudo systemctl status amazon-ssm-agent --no-pager
+sudo systemctl enable --now amazon-ssm-agent
+```
+
+After the AWS setup is applied and the workflow is committed/pushed:
+GitHub -> Actions -> Deploy to AWS -> Run workflow -> main.
+The EC2 must already be running; the workflow will not start it automatically.
+The current repository must remain publicly cloneable by the EC2. A private
+repository requires a separate read authentication setup.
+
+The workflow tests the selected main-branch commit, authenticates with OIDC,
+then runs `scripts/deploy-ec2.sh` through SSM and checks the command's result.
+The remote script builds that exact commit before stopping the app, keeps the
+previous container, and restores it if startup or its HTTP check fails. There
+is a brief interruption during container replacement. Caddy, certificates,
+DuckDNS and app secrets are not changed. A single deployment runs at a time.
+The deployment role can execute shell commands as root on this one instance;
+protect write access to main and review deployment script changes accordingly.
+
+Initial tests cover workflow syntax, SSM polling/failure handling and shell
+syntax. The first real GitHub deployment still needs to be verified after
+AWS permissions and the workflow are activated. A successful HTTP check tests
+the app homepage, not the availability of the upstream Diavgeia API.
