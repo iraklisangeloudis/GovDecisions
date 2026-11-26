@@ -77,7 +77,10 @@ No SSH private key or permanent AWS credentials are stored in GitHub.
 These additions were applied on 2026-11-26: six IAM/OIDC resources were created
 and the existing EC2 instance profile was updated in place. The subsequent
 plan reported No changes. No security group ports changed.
-The workflow has not yet been committed/pushed or tested with a real deployment.
+The first manual GitHub deployment succeeded on 2026-11-26 for commit 00880dc.
+Tests, OIDC authentication and the SSM deployment all passed. The running image
+was verified to match the commit; the app returned 200 and public HTTPS returned
+401 without credentials.
 
 The SSM agent was verified active/enabled and Online after a restart on 2026-11-26.
 It must remain running on the EC2 and appear Online in Systems
@@ -104,6 +107,5 @@ The deployment role can execute shell commands as root on this one instance;
 protect write access to main and review deployment script changes accordingly.
 
 Initial tests cover workflow syntax, SSM polling/failure handling and shell
-syntax. The first real GitHub deployment still needs to be verified after
-AWS permissions and the workflow are activated. A successful HTTP check tests
+syntax. The first real GitHub deployment has also been verified successfully. A successful HTTP check tests
 the app homepage, not the availability of the upstream Diavgeia API.
